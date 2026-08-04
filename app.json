@@ -1,25 +1,60 @@
 {
   "expo": {
-    "name": "RapidMedi",
-    "slug": "RapidMedi",
+    "name": "Rapidmedi",
+    "slug": "com.rapidmedi.customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "scheme": "rapidmedi",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rapidmedi.customer",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Rapidmedi needs camera access to photograph your prescription.",
+        "NSPhotoLibraryUsageDescription": "Rapidmedi needs gallery access to attach an existing photo.",
+        "NSLocationWhenInUseUsageDescription": "Rapidmedi uses your location to find delivery options and speed up address entry."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.rapidmedi.customer",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Rapidmedi uses your location to find delivery options and speed up address entry."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Rapidmedi needs gallery access to attach an existing photo.",
+          "cameraPermission": "Rapidmedi needs camera access to photograph your prescription."
+        }
+      ]
+    ],
+    "extra": {
+      "googleMapsApiKey": "NOT_AVAILABLE",
+      "razorpayTestKeyId": "rzp_test_Shgq35vj7SGKmI"
     }
   }
 }
