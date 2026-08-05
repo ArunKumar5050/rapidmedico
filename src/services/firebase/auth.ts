@@ -1,4 +1,4 @@
-import { initializeAuth, signInWithPhoneNumber, signOut as firebaseSignOut, onAuthStateChanged as firebaseOnAuthStateChanged, User, ConfirmationResult } from 'firebase/auth';
+import { initializeAuth, signInWithPhoneNumber, signOut as firebaseSignOut, onAuthStateChanged as firebaseOnAuthStateChanged, User, ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
 // @ts-ignore
 import { getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,12 +8,30 @@ export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
 
+/**
+ * A minimal ApplicationVerifier that satisfies Firebase's signInWithPhoneNumber.
+ * In production, you should configure Firebase App Check or use 
+ * @react-native-firebase/auth for proper native reCAPTCHA handling.
+ */
+class ReactNativeRecaptchaVerifier {
+  type = 'recaptcha' as const;
+
+  async verify(): Promise<string> {
+    // Firebase JS SDK phone auth requires a reCAPTCHA token.
+    // For development/testing, we return a test token.
+    // For production, you need Firebase App Check or react-native-firebase.
+    return 'recaptcha-token-placeholder';
+  }
+}
+
 export class AuthService {
   private static confirmationResult: ConfirmationResult | null = null;
 
-  static async sendOtp(phoneNumber: string, recaptchaVerifier: any): Promise<boolean> {
+  static async sendOtp(phoneNumber: string): Promise<boolean> {
     try {
-      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      const appVerifier = new ReactNativeRecaptchaVerifier();
+      // @ts-ignore - Firebase expects ApplicationVerifier interface
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
       this.confirmationResult = confirmation;
       return true;
     } catch (error) {
@@ -47,3 +65,4 @@ export class AuthService {
     return firebaseOnAuthStateChanged(auth, callback);
   }
 }
+

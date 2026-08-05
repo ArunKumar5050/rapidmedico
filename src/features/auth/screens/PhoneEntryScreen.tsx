@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Text, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,10 +8,7 @@ import { TextInput } from '../../../components/ui/TextInput';
 import { colors, typography, spacing } from '../../../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../app/navigation/AuthNavigator';
-import { app } from '../../../services/firebase/app';
 import { AuthService } from '../../../services/firebase/auth';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { useRef } from 'react';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'PhoneEntry'>;
 
@@ -22,7 +19,6 @@ interface FormData {
 
 export const PhoneEntryScreen = ({ navigation }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
-  const recaptchaVerifier = useRef(null);
   
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(PhoneEntrySchema),
@@ -37,7 +33,7 @@ export const PhoneEntryScreen = ({ navigation }: Props) => {
     try {
       const fullPhone = `${data.countryCode}${data.phoneNumber}`;
       
-      const success = await AuthService.sendOtp(fullPhone, recaptchaVerifier.current);
+      const success = await AuthService.sendOtp(fullPhone);
       
       if (success) {
         navigation.navigate('OtpVerification', { phone: fullPhone });
@@ -55,11 +51,6 @@ export const PhoneEntryScreen = ({ navigation }: Props) => {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={app.options}
-        attemptInvisibleVerification
-      />
       <View style={styles.content}>
         <Text style={styles.title}>Welcome to Rapidmedi</Text>
         <Text style={styles.subtitle}>Enter your phone number to continue</Text>
@@ -139,3 +130,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
