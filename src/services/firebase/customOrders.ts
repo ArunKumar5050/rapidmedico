@@ -3,7 +3,7 @@ import { db } from './firestore';
 
 export interface CustomOrder {
   id?: string;
-  medicineName: string;
+  medicines: string[];
   userName: string;
   mobile: string;
   address: string;
@@ -12,6 +12,8 @@ export interface CustomOrder {
   userId: string;
   storeId?: string;
   billAmount?: number;
+  itemizedBill?: { medicine: string, price: number }[];
+  deliveryCharge?: number;
 }
 
 export const createCustomOrder = async (orderData: Omit<CustomOrder, 'id' | 'createdAt' | 'status'>) => {

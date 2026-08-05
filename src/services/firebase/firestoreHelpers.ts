@@ -1,6 +1,7 @@
 import { 
   collection, 
   doc, 
+  getDoc,
   setDoc, 
   deleteDoc, 
   onSnapshot 
@@ -42,6 +43,24 @@ export const syncCollection = <T extends { id: string }>(
       }
     }
   );
+};
+
+export const getDocument = async (collectionPath: string, id: string) => {
+  try {
+    const docRef = doc(db, collectionPath, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+    return null;
+  } catch (error: any) {
+    if (error?.code === 'permission-denied') {
+      logPermissionWarning(collectionPath);
+    } else {
+      console.warn(`Firestore get error (${collectionPath}):`, error);
+    }
+    return null;
+  }
 };
 
 export const saveDocument = async <T extends { id: string }>(

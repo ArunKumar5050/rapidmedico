@@ -121,7 +121,7 @@ export const OrdersListScreen = ({ navigation }: Props) => {
               : 1; // Custom orders are technically just 1 prescription upload
 
             const title = isCustom 
-              ? (order as CustomOrder).medicineName 
+              ? (order as CustomOrder).medicines?.join(', ') 
               : `${(order as Order).id?.substring(0, 8).toUpperCase() || 'ORDER'}`;
 
             const total = isCustom 

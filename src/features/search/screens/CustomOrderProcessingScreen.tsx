@@ -35,7 +35,7 @@ export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
           Searching for your medicine
         </Text>
         <Text style={[styles.subtitle, { color: themeColors.text.secondary }]}>
-          We are currently checking the nearest medical stores for "{order?.medicineName || 'your requested medicine'}".
+          We are currently checking the nearest medical stores for "{order?.medicines?.join(', ') || 'your requested medicine'}".
         </Text>
         <Text style={[styles.info, { color: themeColors.text.secondary }]}>
           Please wait on this screen. Once a store confirms availability, you will be prompted to make the payment.

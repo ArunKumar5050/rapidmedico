@@ -26,26 +26,6 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
     return () => unsubscribe();
   }, [orderId]);
 
-  const handlePayment = async () => {
-    setIsPaying(true);
-    try {
-      await payCustomOrder(orderId);
-      Alert.alert(
-        "Payment Successful",
-        "Your order has been placed successfully!",
-        [
-          { text: "View Orders", onPress: () => navigation.navigate('Tabs', { screen: 'Orders' } as any) }, // Assuming 'Orders' is a tab
-          { text: "OK", onPress: () => navigation.navigate('Tabs') }
-        ]
-      );
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Payment Failed", "Something went wrong while processing your payment. Please try again.");
-    } finally {
-      setIsPaying(false);
-    }
-  };
-
   if (!order) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
@@ -57,9 +37,25 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
     );
   }
 
+  // Calculate totals
+  const deliveryFee = order.deliveryCharge ?? 200;
+  const finalTotal = order.billAmount || 0;
+  
+  const itemTotal = order.itemizedBill 
+    ? order.itemizedBill.reduce((sum, item) => sum + item.price, 0)
+    : Math.max(0, finalTotal - deliveryFee);
+
+  const handlePayment = () => {
+    navigation.navigate('PaymentMethods', { 
+      orderId, 
+      amount: finalTotal, 
+      isCustomOrder: true 
+    });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
-      <Header title="Payment" showBack onBack={() => navigation.goBack()} />
+      <Header title="Bill Details" showBack onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         
         <View style={styles.successIconContainer}>
@@ -68,16 +64,30 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
             Store Found!
           </Text>
           <Text style={[styles.successSubtitle, { color: themeColors.text.secondary }]}>
-            A nearby store has confirmed stock for your medicine.
+            A nearby store has confirmed stock and priced your order.
           </Text>
         </View>
 
         <Card style={styles.billCard}>
-          <Text style={[styles.billTitle, { color: themeColors.text.primary }]}>Bill Details</Text>
+          <Text style={[styles.billTitle, { color: themeColors.text.primary }]}>Itemized Bill</Text>
           
+          {order.itemizedBill && order.itemizedBill.length > 0 ? (
+            order.itemizedBill.map((item, index) => (
+              <View key={index} style={[styles.row, { borderBottomColor: themeColors.border.default }]}>
+                <Text style={[styles.label, { color: themeColors.text.secondary }]}>{item.medicine}</Text>
+                <Text style={[styles.value, { color: themeColors.text.primary }]}>₹{item.price.toFixed(2)}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={[styles.row, { borderBottomColor: themeColors.border.default }]}>
+              <Text style={[styles.label, { color: themeColors.text.secondary, flex: 1 }]}>{order.medicines?.join(', ')}</Text>
+              <Text style={[styles.value, { color: themeColors.text.primary }]}>₹{itemTotal.toFixed(2)}</Text>
+            </View>
+          )}
+
           <View style={[styles.row, { borderBottomColor: themeColors.border.default }]}>
-            <Text style={[styles.label, { color: themeColors.text.secondary }]}>Medicine</Text>
-            <Text style={[styles.value, { color: themeColors.text.primary }]}>{order.medicineName}</Text>
+            <Text style={[styles.label, { color: themeColors.text.secondary }]}>Delivery Charge</Text>
+            <Text style={[styles.value, { color: themeColors.text.primary }]}>₹{deliveryFee.toFixed(2)}</Text>
           </View>
           
           <View style={[styles.row, { borderBottomColor: themeColors.border.default }]}>
@@ -93,7 +103,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
           <View style={styles.totalRow}>
             <Text style={[styles.totalLabel, { color: themeColors.text.primary }]}>Total Amount</Text>
             <Text style={[styles.totalValue, { color: themeColors.brand.primary }]}>
-              ₹{order.billAmount || '0.00'}
+              ₹{finalTotal.toFixed(2)}
             </Text>
           </View>
         </Card>
@@ -102,9 +112,8 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
 
       <View style={[styles.footer, { borderTopColor: themeColors.border.default, backgroundColor: themeColors.background.primary }]}>
         <Button
-          title={`Pay ₹${order.billAmount || '0.00'}`}
+          title={`Proceed to Pay ₹${finalTotal.toFixed(2)}`}
           onPress={handlePayment}
-          loading={isPaying}
           style={styles.payBtn}
         />
       </View>

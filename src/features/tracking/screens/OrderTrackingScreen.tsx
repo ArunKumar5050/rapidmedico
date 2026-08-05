@@ -125,6 +125,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centerContent: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

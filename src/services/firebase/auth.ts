@@ -1,4 +1,6 @@
-import { initializeAuth, getReactNativePersistence, signInWithPhoneNumber, signOut as firebaseSignOut, onAuthStateChanged as firebaseOnAuthStateChanged, User, ConfirmationResult } from 'firebase/auth';
+import { initializeAuth, signInWithPhoneNumber, signOut as firebaseSignOut, onAuthStateChanged as firebaseOnAuthStateChanged, User, ConfirmationResult } from 'firebase/auth';
+// @ts-ignore
+import { getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { app } from './app';
 

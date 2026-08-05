@@ -34,7 +34,7 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
       const user = await AuthService.verifyOtp(otp);
       
       // Check if user profile already exists
-      const userData = await getDocument('users', user.uid);
+      const userData = await getDocument('users', user.uid) as { name?: string } | null;
       
       if (userData) {
         setUser({ uid: user.uid, phone: user.phoneNumber || phone, name: userData.name });

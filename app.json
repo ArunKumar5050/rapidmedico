@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Rapidmedi",
-    "slug": "com.rapidmedi.customer",
+    "slug": "rapidmedi-customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,13 +25,14 @@
       },
       "package": "com.rapidmedi.customer",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -50,11 +51,16 @@
           "photosPermission": "Rapidmedi needs gallery access to attach an existing photo.",
           "cameraPermission": "Rapidmedi needs camera access to photograph your prescription."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "googleMapsApiKey": "NOT_AVAILABLE",
-      "razorpayTestKeyId": "rzp_test_Shgq35vj7SGKmI"
-    }
+      "razorpayTestKeyId": "rzp_test_Shgq35vj7SGKmI",
+      "eas": {
+        "projectId": "c0684dc2-1359-4d86-ad21-d082cf78a6af"
+      }
+    },
+    "owner": "arunkumar6684"
   }
 }

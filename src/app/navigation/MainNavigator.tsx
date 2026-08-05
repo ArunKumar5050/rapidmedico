@@ -17,6 +17,8 @@ import { CouponsScreen } from '../../features/coupons/screens/CouponsScreen';
 import { CustomOrderRequestScreen } from '../../features/search/screens/CustomOrderRequestScreen';
 import { CustomOrderProcessingScreen } from '../../features/search/screens/CustomOrderProcessingScreen';
 import { CustomOrderPaymentScreen } from '../../features/search/screens/CustomOrderPaymentScreen';
+import { PaymentMethodsScreen } from '../../features/checkout/screens/PaymentMethodsScreen';
+import { RazorpayCheckoutScreen } from '../../features/checkout/screens/RazorpayCheckoutScreen';
 
 export type MainStackParamList = {
   Tabs: undefined;
@@ -36,6 +38,8 @@ export type MainStackParamList = {
   CustomOrderRequest: { initialMedicineName?: string };
   CustomOrderProcessing: { orderId: string };
   CustomOrderPayment: { orderId: string };
+  PaymentMethods: { orderId: string, amount: number, isCustomOrder?: boolean };
+  RazorpayCheckout: { orderId: string, amount: number, isCustomOrder?: boolean };
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -60,6 +64,8 @@ export const MainNavigator = () => {
       <Stack.Screen name="CustomOrderRequest" component={CustomOrderRequestScreen} />
       <Stack.Screen name="CustomOrderProcessing" component={CustomOrderProcessingScreen} />
       <Stack.Screen name="CustomOrderPayment" component={CustomOrderPaymentScreen} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="RazorpayCheckout" component={RazorpayCheckoutScreen} />
     </Stack.Navigator>
   );
 };
