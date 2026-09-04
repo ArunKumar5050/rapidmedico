@@ -8,13 +8,18 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import * as ImagePicker from 'expo-image-picker';
 import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
+import { useCartStore } from '../../../store/useCartStore';
+import { TextInput } from '../../../components/ui/TextInput';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'PrescriptionUpload'>;
 
 export const PrescriptionUploadScreen = ({ navigation }: Props) => {
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [description, setDescription] = useState('');
   const themeColors = useThemeColors();
+  const setPrescriptionUrl = useCartStore((state) => state.setPrescriptionUrl);
+  const setPrescriptionDescription = useCartStore((state) => state.setPrescriptionDescription);
 
   const handleUpload = async (source: 'Camera' | 'Gallery') => {
     let result;
@@ -101,10 +106,23 @@ export const PrescriptionUploadScreen = ({ navigation }: Props) => {
         )}
 
         {uploadedUrl && !isUploading && (
-          <Card style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: themeColors.status.success, marginBottom: spacing.lg }}>
-            <Ionicons name="checkmark-circle" size={24} color={themeColors.status.success} />
-            <Text style={[styles.successText, { color: themeColors.status.success }]}>Prescription attached successfully</Text>
-          </Card>
+          <View>
+            <Card style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: themeColors.status.success, marginBottom: spacing.lg }}>
+              <Ionicons name="checkmark-circle" size={24} color={themeColors.status.success} />
+              <Text style={[styles.successText, { color: themeColors.status.success }]}>Prescription attached successfully</Text>
+            </Card>
+
+            <View style={{ marginBottom: spacing.lg }}>
+              <TextInput
+                label="Add a Note or Instruction (Optional)"
+                placeholder="E.g., Please provide medicines for 1 month as per the prescription."
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+          </View>
         )}
 
         <Card style={styles.guideCard}>
@@ -127,9 +145,14 @@ export const PrescriptionUploadScreen = ({ navigation }: Props) => {
       <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
         <Button
           title="Continue to Order"
+          disabled={!uploadedUrl}
           onPress={() => {
-            // Ideally pass uploadedUrl to Cart/Checkout, but for now navigate
-            navigation.navigate('Cart');
+            if (uploadedUrl) {
+              navigation.navigate('CustomOrderRequest', {
+                initialImageUrl: uploadedUrl,
+                initialDescription: description,
+              });
+            }
           }}
         />
       </View>

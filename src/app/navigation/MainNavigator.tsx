@@ -26,7 +26,7 @@ export type MainStackParamList = {
   PrescriptionUpload: undefined;
   Cart: undefined;
   Checkout: undefined;
-  OrderTracking: { orderId: string };
+  OrderTracking: { orderId: string, isCustomOrder?: boolean };
   LiveTracking: { orderId: string };
   SupportChat: undefined;
   AddressManagement: undefined;
@@ -35,7 +35,7 @@ export type MainStackParamList = {
   Settings: undefined;
   Referral: undefined;
   Coupons: undefined;
-  CustomOrderRequest: { initialMedicineName?: string };
+  CustomOrderRequest: { initialMedicineName?: string; initialImageUrl?: string | null; initialDescription?: string };
   CustomOrderProcessing: { orderId: string };
   CustomOrderPayment: { orderId: string };
   PaymentMethods: { orderId: string, amount: number, isCustomOrder?: boolean };

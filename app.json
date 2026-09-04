@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Rapidmedi",
+    "name": "RapidMedico",
     "slug": "rapidmedi-customer",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,17 +11,15 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rapidmedi.customer",
       "infoPlist": {
-        "NSCameraUsageDescription": "Rapidmedi needs camera access to photograph your prescription.",
-        "NSPhotoLibraryUsageDescription": "Rapidmedi needs gallery access to attach an existing photo.",
-        "NSLocationWhenInUseUsageDescription": "Rapidmedi uses your location to find delivery options and speed up address entry."
+        "NSCameraUsageDescription": "RapidMedico needs camera access to photograph your prescription.",
+        "NSPhotoLibraryUsageDescription": "RapidMedico needs gallery access to attach an existing photo.",
+        "NSLocationWhenInUseUsageDescription": "RapidMedico uses your location to find delivery options and speed up address entry."
       }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png"
       },
       "package": "com.rapidmedi.customer",
       "permissions": [
@@ -42,14 +40,14 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Rapidmedi uses your location to find delivery options and speed up address entry."
+          "locationAlwaysAndWhenInUsePermission": "RapidMedico uses your location to find delivery options and speed up address entry."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Rapidmedi needs gallery access to attach an existing photo.",
-          "cameraPermission": "Rapidmedi needs camera access to photograph your prescription."
+          "photosPermission": "RapidMedico needs gallery access to attach an existing photo.",
+          "cameraPermission": "RapidMedico needs camera access to photograph your prescription."
         }
       ],
       "expo-font"
@@ -58,9 +56,11 @@
       "googleMapsApiKey": "NOT_AVAILABLE",
       "razorpayTestKeyId": "rzp_test_Shgq35vj7SGKmI",
       "eas": {
-        "projectId": "c0684dc2-1359-4d86-ad21-d082cf78a6af"
+        "projectId": "1c4bb441-3e08-431e-9db2-568ce78a62e4"
       }
     },
-    "owner": "arunkumar6684"
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

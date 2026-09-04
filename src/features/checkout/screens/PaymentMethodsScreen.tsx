@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '../../../components/ui/Header';
 import { Ionicons } from '@expo/vector-icons';
 import { payCustomOrder } from '../../../services/firebase/customOrders';
+import { payOrder } from '../../../services/firebase/orders';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'PaymentMethods'>;
 
@@ -21,19 +22,13 @@ export const PaymentMethodsScreen = ({ navigation, route }: Props) => {
   const handleCOD = async () => {
     try {
       if (isCustomOrder) {
-        await payCustomOrder(orderId);
+        await payCustomOrder(orderId, 'COD');
       } else {
-        // Handle standard order COD
+        await payOrder(orderId, 'COD');
       }
       
-      Alert.alert(
-        "Order Confirmed",
-        "Your order has been placed with Cash on Delivery.",
-        [
-          { text: "View Orders", onPress: () => navigation.navigate('Tabs', { screen: 'Orders' } as any) },
-          { text: "OK", onPress: () => navigation.navigate('Tabs') }
-        ]
-      );
+      // Automatically redirect to the order track page
+      navigation.replace('OrderTracking', { orderId, isCustomOrder: !!isCustomOrder });
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to confirm order. Please try again.");

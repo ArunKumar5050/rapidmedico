@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Text, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,7 @@ interface FormData {
 
 export const PhoneEntryScreen = ({ navigation }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(PhoneEntrySchema),
     defaultValues: {
@@ -33,10 +33,19 @@ export const PhoneEntryScreen = ({ navigation }: Props) => {
     try {
       const fullPhone = `${data.countryCode}${data.phoneNumber}`;
       
-      const success = await AuthService.sendOtp(fullPhone);
+      const { success, otpCode } = await AuthService.sendOtp(fullPhone);
       
       if (success) {
-        navigation.navigate('OtpVerification', { phone: fullPhone });
+        Alert.alert(
+          'OTP Sent',
+          `Verification code sent to ${fullPhone}.\nUse OTP: ${otpCode}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('OtpVerification', { phone: fullPhone }),
+            }
+          ]
+        );
       }
     } catch (error: any) {
       console.error(error);
@@ -130,4 +139,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { saveDocument, syncCollection } from '../services/firebase/firestoreHelpers';
+import { saveDocument, deleteDocument, syncCollection } from '../services/firebase/firestoreHelpers';
 
 export type Address = {
   id: string;
@@ -7,11 +7,19 @@ export type Address = {
   text: string;
   receiver: string;
   isDefault: boolean;
+  latitude?: number;
+  longitude?: number;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
 };
 
 interface AddressStore {
   addresses: Address[];
   addAddress: (address: Address) => void;
+  updateAddress: (id: string, address: Address) => void;
+  deleteAddress: (id: string) => void;
   setDefaultAddress: (id: string) => void;
   getDefaultAddress: () => Address | undefined;
   initSync: () => () => void;
@@ -54,6 +62,35 @@ export const useAddressStore = create<AddressStore>((set, get) => ({
     }
     saveDocument(COLLECTION_PATH, address);
     set({ addresses: [...updatedAddresses, address] });
+  },
+
+  updateAddress: (id: string, address: Address) => {
+    const state = get();
+    let updatedAddresses = [...state.addresses];
+    
+    if (address.isDefault) {
+      updatedAddresses = updatedAddresses.map((a) => {
+        if (a.id === id) return a;
+        const resetAddr = { ...a, isDefault: false };
+        saveDocument(COLLECTION_PATH, resetAddr);
+        return resetAddr;
+      });
+    }
+    
+    updatedAddresses = updatedAddresses.map((a) => (a.id === id ? address : a));
+    saveDocument(COLLECTION_PATH, address);
+    set({ addresses: updatedAddresses });
+  },
+
+  deleteAddress: (id: string) => {
+    const state = get();
+    const updatedAddresses = state.addresses.filter(a => a.id !== id);
+    if (updatedAddresses.length > 0 && !updatedAddresses.find(a => a.isDefault)) {
+      updatedAddresses[0].isDefault = true;
+      saveDocument(COLLECTION_PATH, updatedAddresses[0]);
+    }
+    deleteDocument(COLLECTION_PATH, id);
+    set({ addresses: updatedAddresses });
   },
 
   setDefaultAddress: (id: string) => {

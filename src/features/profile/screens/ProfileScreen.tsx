@@ -9,8 +9,12 @@ import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 type Props = NativeStackScreenProps<MainStackParamList>;
 
 export const ProfileScreen = ({ navigation }: Props) => {
-  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const { setAuthenticated, user } = useAuthStore();
   const themeColors = useThemeColors();
+
+  const displayName = user?.name || 'Arun Kumar';
+  const displayPhone = user?.phone || '+91 98765 43210';
+  const avatarLetter = displayName.charAt(0).toUpperCase() || 'U';
 
   const menuSections = [
     {
@@ -42,11 +46,11 @@ export const ProfileScreen = ({ navigation }: Props) => {
       <View style={[styles.header, { backgroundColor: themeColors.background.secondary, borderBottomColor: themeColors.border.default }]}>
         <View style={styles.userInfo}>
           <View style={[styles.avatar, { backgroundColor: themeColors.brand.primary }]}>
-            <Text style={styles.avatarText}>A</Text>
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
           </View>
           <View>
-            <Text style={[styles.userName, { color: themeColors.text.primary }]}>Arun Kumar</Text>
-            <Text style={[styles.userPhone, { color: themeColors.text.secondary }]}>+91 98765 43210</Text>
+            <Text style={[styles.userName, { color: themeColors.text.primary }]}>{displayName}</Text>
+            <Text style={[styles.userPhone, { color: themeColors.text.secondary }]}>{displayPhone}</Text>
           </View>
         </View>
       </View>

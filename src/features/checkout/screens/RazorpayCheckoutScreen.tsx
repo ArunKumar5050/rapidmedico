@@ -7,6 +7,7 @@ import { useThemeColors } from '../../../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '../../../components/ui/Header';
 import { payCustomOrder } from '../../../services/firebase/customOrders';
+import { payOrder } from '../../../services/firebase/orders';
 import Constants from 'expo-constants';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'RazorpayCheckout'>;
@@ -79,17 +80,11 @@ export const RazorpayCheckoutScreen = ({ navigation, route }: Props) => {
         if (isCustomOrder) {
           await payCustomOrder(orderId);
         } else {
-          // Handle standard order payment success
+          await payOrder(orderId);
         }
 
-        Alert.alert(
-          "Payment Successful",
-          "Your order has been paid and confirmed!",
-          [
-            { text: "View Orders", onPress: () => navigation.navigate('Tabs', { screen: 'Orders' } as any) },
-            { text: "OK", onPress: () => navigation.navigate('Tabs') }
-          ]
-        );
+        // Automatically redirect to the order track page
+        navigation.replace('OrderTracking', { orderId, isCustomOrder: !!isCustomOrder });
       } else if (result.status === 'failed') {
         Alert.alert("Payment Failed", result.data?.description || "Something went wrong.");
         navigation.goBack();

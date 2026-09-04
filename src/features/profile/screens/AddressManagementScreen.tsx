@@ -16,9 +16,10 @@ type Props = NativeStackScreenProps<MainStackParamList, 'AddressManagement'>;
 export const AddressManagementScreen = ({ navigation }: Props) => {
   const themeColors = useThemeColors();
 
-  const { addresses, addAddress, setDefaultAddress } = useAddressStore();
+  const { addresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } = useAddressStore();
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
 
   // Detailed Form Fields
@@ -31,6 +32,7 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
   const [isDefault, setIsDefault] = useState(false);
+  const [detectedCoords, setDetectedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const handleDetectLocation = async () => {
     setIsDetecting(true);
@@ -42,12 +44,15 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
       }
 
       let location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
 
+      const { latitude, longitude } = location.coords;
+      setDetectedCoords({ latitude, longitude });
+
       let reverseGeocode = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude,
+        longitude,
       });
 
       if (reverseGeocode && reverseGeocode.length > 0) {
@@ -77,15 +82,28 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
     const fullFormattedText = `${houseNo.trim()}, ${streetArea.trim()}${landmark.trim() ? `, Near ${landmark.trim()}` : ''}, ${cityState.trim()} - ${pincode.trim()}`;
     const fullReceiver = `${receiverName.trim()} (+91 ${receiverPhone.trim() || '98765 43210'})`;
 
-    const newAddressObj = {
-      id: Date.now().toString(),
+    const newAddressObj: any = {
+      id: editingId ? editingId : Date.now().toString(),
       title: selectedTag,
       text: fullFormattedText,
       receiver: fullReceiver,
       isDefault: isDefault,
     };
 
-    addAddress(newAddressObj);
+    if (detectedCoords) {
+      newAddressObj.latitude = detectedCoords.latitude;
+      newAddressObj.longitude = detectedCoords.longitude;
+      newAddressObj.coordinates = {
+        latitude: detectedCoords.latitude,
+        longitude: detectedCoords.longitude,
+      };
+    }
+
+    if (editingId) {
+      updateAddress(editingId, newAddressObj);
+    } else {
+      addAddress(newAddressObj);
+    }
 
     // Reset Form
     setHouseNo('');
@@ -95,7 +113,37 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
     setReceiverName('');
     setReceiverPhone('');
     setIsDefault(false);
+    setDetectedCoords(null);
+    setEditingId(null);
     setModalVisible(false);
+  };
+
+  const handleEdit = (addr: any) => {
+    // Basic parse logic for pre-fill
+    const receiverParts = addr.receiver.split(' (+91 ');
+    setReceiverName(receiverParts[0]);
+    if (receiverParts[1]) setReceiverPhone(receiverParts[1].replace(')', ''));
+
+    const addrParts = addr.text.split(', ');
+    setHouseNo(addrParts[0] || '');
+    setStreetArea(addrParts[1]?.replace(/ Near .*/, '') || '');
+    setLandmark(addrParts[1]?.includes(' Near ') ? addrParts[1].split(' Near ')[1] : '');
+    const cityStatePin = addrParts[addrParts.length - 1] || '';
+    const pinMatch = cityStatePin.match(/\d{6}/);
+    setPincode(pinMatch ? pinMatch[0] : '');
+    setCityState(cityStatePin.replace(/ - \d{6}/, ''));
+
+    setSelectedTag(addr.title as any);
+    setIsDefault(addr.isDefault);
+    setEditingId(addr.id);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert('Delete Address', 'Are you sure you want to delete this address?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteAddress(id) },
+    ]);
   };
 
   const setDefault = (id: string) => {
@@ -109,7 +157,7 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
           <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>Saved Addresses</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <TouchableOpacity onPress={() => { setEditingId(null); setModalVisible(true); }}>
           <Ionicons name="add" size={24} color={themeColors.brand.primary} />
         </TouchableOpacity>
       </View>
@@ -117,8 +165,8 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
       <ScrollView style={styles.content}>
         {addresses.map((addr) => (
           <Card key={addr.id} style={styles.card}>
-            <TouchableOpacity onPress={() => setDefault(addr.id)}>
-              <View style={styles.row}>
+            <View style={styles.row}>
+              <TouchableOpacity style={{ flex: 1, flexDirection: 'row', gap: spacing.md }} onPress={() => setDefault(addr.id)}>
                 <Ionicons name="location-outline" size={24} color={themeColors.brand.primary} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.titleRow}>
@@ -134,8 +182,16 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
                     <Text style={[styles.receiverText, { color: themeColors.text.secondary }]}>👤 {addr.receiver}</Text>
                   )}
                 </View>
+              </TouchableOpacity>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity onPress={() => handleEdit(addr)} style={styles.iconBtn}>
+                  <Ionicons name="pencil" size={20} color={themeColors.text.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(addr.id)} style={styles.iconBtn}>
+                  <Ionicons name="trash" size={20} color="#EF4444" />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            </View>
           </Card>
         ))}
       </ScrollView>
@@ -145,8 +201,8 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: themeColors.background.primary }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>Add Detailed Address</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>{editingId ? 'Edit' : 'Add'} Detailed Address</Text>
+              <TouchableOpacity onPress={() => { setEditingId(null); setModalVisible(false); }}>
                 <Ionicons name="close" size={24} color={themeColors.text.primary} />
               </TouchableOpacity>
             </View>
@@ -252,7 +308,7 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
               </View>
             </ScrollView>
 
-            <Button title="Save Detailed Address" onPress={handleSaveAddress} style={{ marginTop: spacing.md }} />
+            <Button title={editingId ? 'Update Address' : 'Save Detailed Address'} onPress={handleSaveAddress} style={{ marginTop: spacing.md }} />
           </View>
         </View>
       </Modal>
@@ -281,6 +337,8 @@ const styles = StyleSheet.create({
   defaultText: { ...typography.caption, fontWeight: 'bold', fontSize: 10 },
   addrText: { ...typography.body, marginTop: 4 },
   receiverText: { ...typography.caption, marginTop: 4 },
+  actionButtons: { flexDirection: 'row', gap: spacing.sm, marginLeft: spacing.sm },
+  iconBtn: { padding: spacing.xs },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

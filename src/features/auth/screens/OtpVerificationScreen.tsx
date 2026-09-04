@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TextInput, Alert } from 'react-native';
 import { AuthService } from '../../../services/firebase/auth';
 import { getDocument } from '../../../services/firebase/firestoreHelpers';
 import { useAuthStore } from '../../../store/auth';
@@ -31,33 +31,35 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
     if (otp.length !== 6) return;
     setIsLoading(true);
     try {
-      const user = await AuthService.verifyOtp(otp);
+      const user = await AuthService.verifyOtp(phone, otp);
       
-      // Check if user profile already exists
+      // Check if user profile already exists in Firestore
       const userData = await getDocument('users', user.uid) as { name?: string } | null;
       
-      if (userData) {
-        setUser({ uid: user.uid, phone: user.phoneNumber || phone, name: userData.name });
+      if (userData && userData.name) {
+        setUser({ uid: user.uid, phone: user.phone || phone, name: userData.name });
         setAuthenticated(true);
       } else {
         // Navigate to Profile completion so they can enter their name
-        // ProfileCompletion will update the global Auth state.
         navigation.navigate('ProfileCompletion', { phone });
       }
     } catch (error: any) {
       console.error(error);
-      alert(error.message || 'Verification failed');
+      Alert.alert('Verification Failed', error.message || 'Verification failed. Use OTP: 123456');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (countdown > 0) return;
-    setCountdown(30);
-    // Real app: call AuthService.sendOtp again.
-    // For now, since we need recaptcha verifier ref, they should go back and re-enter phone.
-    navigation.goBack();
+    try {
+      setCountdown(30);
+      const { otpCode } = await AuthService.sendOtp(phone);
+      Alert.alert('OTP Resent', `New OTP sent to ${phone}.\nUse OTP: ${otpCode}`);
+    } catch (err) {
+      navigation.goBack();
+    }
   };
 
   return (
@@ -68,6 +70,7 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
       <View style={styles.content}>
         <Text style={styles.title}>Verify your number</Text>
         <Text style={styles.subtitle}>Enter the 6-digit code sent to {phone}</Text>
+        <Text style={styles.hintText}>(Test code: 123456)</Text>
 
         <TextInput
           style={styles.otpInput}
@@ -75,12 +78,12 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
           onChangeText={setOtp}
           keyboardType="number-pad"
           maxLength={6}
-          placeholder="000000"
+          placeholder="123456"
           placeholderTextColor={colors.light.text.secondary}
         />
 
         <Button 
-          title="Verify" 
+          title="Verify & Continue" 
           onPress={handleVerify} 
           loading={isLoading}
           disabled={otp.length !== 6}
@@ -119,7 +122,13 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     color: colors.light.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  hintText: {
+    ...typography.caption,
+    color: colors.light.brand.primary,
     marginBottom: spacing.xl,
+    fontWeight: '600',
   },
   otpInput: {
     ...typography.display,

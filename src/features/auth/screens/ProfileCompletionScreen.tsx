@@ -6,7 +6,6 @@ import { colors, typography, spacing } from '../../../theme';
 import { useAuthStore } from '../../../store/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../../app/navigation/AuthNavigator';
-import { auth } from '../../../services/firebase/auth';
 import { saveDocument } from '../../../services/firebase/firestoreHelpers';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ProfileCompletion'>;
@@ -27,7 +26,7 @@ export const ProfileCompletionScreen = ({ route }: Props) => {
 
     setIsLoading(true);
     try {
-      const uid = auth.currentUser?.uid || `local-${Date.now()}`;
+      const uid = `user_${phone.replace(/\D/g, '')}`;
       const userData = {
         id: uid,
         phone,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors, typography, spacing } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,13 +30,20 @@ export const SupportChatScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
+    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
       <View style={[styles.header, { backgroundColor: themeColors.background.secondary, borderBottomColor: themeColors.border.default }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>Rapidmedi Support</Text>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={() => Linking.openURL('tel:8302389192')}>
+          <Ionicons name="call" size={24} color={themeColors.brand.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.chatList}>
@@ -71,7 +79,8 @@ export const SupportChatScreen = ({ navigation }: Props) => {
           <Ionicons name="send" size={18} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

@@ -18,23 +18,43 @@ export const FamilyMembersScreen = ({ navigation }: Props) => {
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [relation, setRelation] = useState('');
   const [age, setAge] = useState('');
 
   const handleSaveMember = () => {
     if (!name.trim() || !relation.trim()) return;
-    const newMember = {
-      id: Date.now().toString(),
+    const memberObj = {
+      id: editingId ? editingId : Date.now().toString(),
       name: name.trim(),
       relation: relation.trim(),
       age: parseInt(age) || 30,
     };
-    setFamily((prev) => [...prev, newMember]);
+
+    if (editingId) {
+      setFamily((prev) => prev.map(m => m.id === editingId ? memberObj : m));
+    } else {
+      setFamily((prev) => [...prev, memberObj]);
+    }
+
     setName('');
     setRelation('');
     setAge('');
+    setEditingId(null);
     setModalVisible(false);
+  };
+
+  const handleEdit = (member: any) => {
+    setName(member.name);
+    setRelation(member.relation);
+    setAge(member.age.toString());
+    setEditingId(member.id);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setFamily(prev => prev.filter(m => m.id !== id));
   };
 
   return (
@@ -44,7 +64,7 @@ export const FamilyMembersScreen = ({ navigation }: Props) => {
           <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>Family Members</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <TouchableOpacity onPress={() => { setEditingId(null); setModalVisible(true); }}>
           <Ionicons name="add-circle-outline" size={24} color={themeColors.brand.primary} />
         </TouchableOpacity>
       </View>
@@ -53,10 +73,20 @@ export const FamilyMembersScreen = ({ navigation }: Props) => {
         {family.map((member) => (
           <Card key={member.id} style={styles.card}>
             <View style={styles.row}>
-              <Ionicons name="person-circle-outline" size={40} color={themeColors.brand.primary} />
-              <View>
-                <Text style={[styles.name, { color: themeColors.text.primary }]}>{member.name}</Text>
-                <Text style={[styles.sub, { color: themeColors.text.secondary }]}>{member.relation} • {member.age} yrs</Text>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Ionicons name="person-circle-outline" size={40} color={themeColors.brand.primary} />
+                <View>
+                  <Text style={[styles.name, { color: themeColors.text.primary }]}>{member.name}</Text>
+                  <Text style={[styles.sub, { color: themeColors.text.secondary }]}>{member.relation} • {member.age} yrs</Text>
+                </View>
+              </View>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity onPress={() => handleEdit(member)} style={styles.iconBtn}>
+                  <Ionicons name="pencil" size={20} color={themeColors.text.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(member.id)} style={styles.iconBtn}>
+                  <Ionicons name="trash" size={20} color="#EF4444" />
+                </TouchableOpacity>
               </View>
             </View>
           </Card>
@@ -68,8 +98,8 @@ export const FamilyMembersScreen = ({ navigation }: Props) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: themeColors.background.primary }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>Add Family Member</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>{editingId ? 'Edit' : 'Add'} Family Member</Text>
+              <TouchableOpacity onPress={() => { setEditingId(null); setModalVisible(false); }}>
                 <Ionicons name="close" size={24} color={themeColors.text.primary} />
               </TouchableOpacity>
             </View>
@@ -96,7 +126,7 @@ export const FamilyMembersScreen = ({ navigation }: Props) => {
               keyboardType="number-pad"
             />
 
-            <Button title="Save Family Member" onPress={handleSaveMember} style={{ marginTop: spacing.md }} />
+            <Button title={editingId ? 'Update Family Member' : 'Save Family Member'} onPress={handleSaveMember} style={{ marginTop: spacing.md }} />
           </View>
         </View>
       </Modal>
@@ -118,9 +148,11 @@ const styles = StyleSheet.create({
   title: { ...typography.h2 },
   content: { padding: spacing.lg },
   card: { marginBottom: spacing.md },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   name: { ...typography.bodyStrong },
   sub: { ...typography.caption, marginTop: 2 },
+  actionButtons: { flexDirection: 'row', gap: spacing.sm },
+  iconBtn: { padding: spacing.xs },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

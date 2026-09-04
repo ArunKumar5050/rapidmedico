@@ -7,14 +7,46 @@ export interface CustomOrder {
   userName: string;
   mobile: string;
   address: string;
-  status: 'processing' | 'confirmed' | 'paid' | 'completed';
+  status: 'processing' | 'confirmed' | 'paid' | 'completed' | string;
+  storeStatus?: string;
   createdAt: any;
   userId: string;
   storeId?: string;
   billAmount?: number;
   itemizedBill?: { medicine: string, price: number }[];
   deliveryCharge?: number;
+  imageUrls?: string[];
+  deliveryPartnerId?: string;
+  deliveryPartnerName?: string;
+  deliveryPartnerPhone?: string;
+  deliveryOtp?: string;
+  otp?: string;
+  pickupOtp?: string;
+  storePickupOtp?: string;
+  deliveryPartnerAssignedAt?: string;
+  latitude?: number;
+  longitude?: number;
+  customerLat?: number;
+  customerLng?: number;
+  userLat?: number;
+  userLng?: number;
+  location?: {
+    lat: number;
+    lng: number;
+    latitude?: number;
+    longitude?: number;
+    timestamp?: number;
+    accuracy?: number;
+  };
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
 }
+
+export const generateDeliveryOtp = (): string => {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+};
 
 export const createCustomOrder = async (orderData: Omit<CustomOrder, 'id' | 'createdAt' | 'status'>) => {
   try {
@@ -25,6 +57,16 @@ export const createCustomOrder = async (orderData: Omit<CustomOrder, 'id' | 'cre
       createdAt: serverTimestamp(),
     };
     const docRef = await addDoc(ordersRef, newOrder);
+    
+    // Trigger push notification to stores
+    import('../notifications').then(({ sendPushNotificationToStores }) => {
+      sendPushNotificationToStores(
+        'New Prescription Order!', 
+        `${orderData.userName} requested a new order.`,
+        { orderId: docRef.id, type: 'custom' }
+      );
+    });
+
     return docRef.id;
   } catch (error) {
     console.error("Error creating custom order:", error);
@@ -58,14 +100,38 @@ export const subscribeToUserCustomOrders = (userId: string, callback: (orders: C
   });
 };
 
-export const payCustomOrder = async (orderId: string) => {
+export const payCustomOrder = async (orderId: string, paymentMethod: 'RAZORPAY' | 'COD' = 'RAZORPAY') => {
   try {
     const docRef = doc(db, 'customOrders', orderId);
     await updateDoc(docRef, {
       status: 'paid',
+      paymentMethod,
+      paymentStatus: paymentMethod === 'COD' ? 'COD' : 'COMPLETED',
     });
   } catch (error) {
     console.error("Error paying custom order:", error);
+    throw error;
+  }
+};
+
+export const assignDeliveryPartnerToCustomOrder = async (orderId: string, partnerDetails?: any) => {
+  try {
+    const otp = generateDeliveryOtp();
+    const docRef = doc(db, 'customOrders', orderId);
+    await updateDoc(docRef, {
+      storeStatus: 'DELIVERY_PARTNER_ASSIGNED',
+      status: 'delivery boy assigned',
+      deliveryOtp: otp,
+      otp: otp,
+      pickupOtp: otp,
+      storePickupOtp: otp,
+      deliveryPartnerAssignedAt: new Date().toISOString(),
+      ...(partnerDetails || {}),
+      updatedAt: new Date().toISOString()
+    });
+    return otp;
+  } catch (error) {
+    console.error("Error assigning delivery partner to custom order:", error);
     throw error;
   }
 };

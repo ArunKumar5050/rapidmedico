@@ -10,6 +10,8 @@ import { useCartStore } from '../../../store/useCartStore';
 import { useAuthStore } from '../../../store/auth';
 import { createOrder } from '../../../services/firebase/orders';
 
+import { useAddressStore } from '../../../store/useAddressStore';
+
 type Props = NativeStackScreenProps<MainStackParamList, 'Checkout'>;
 
 export const CheckoutScreen = ({ navigation }: Props) => {
@@ -18,8 +20,10 @@ export const CheckoutScreen = ({ navigation }: Props) => {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
   const themeColors = useThemeColors();
-  const { cartItems, clearCart } = useCartStore();
+  const { cartItems, clearCart, prescriptionUrl, prescriptionDescription } = useCartStore();
   const { user } = useAuthStore();
+  const { getDefaultAddress } = useAddressStore();
+  const activeAddress = getDefaultAddress();
 
   const totalAmount = cartItems.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
 
@@ -29,21 +33,45 @@ export const CheckoutScreen = ({ navigation }: Props) => {
       return;
     }
 
-    if (cartItems.length === 0) {
-      Alert.alert('Error', 'Your cart is empty.');
+    if (cartItems.length === 0 && !prescriptionUrl) {
+      Alert.alert('Error', 'Your cart is empty and no prescription is attached.');
       return;
     }
 
     setIsPlacingOrder(true);
     try {
-      const orderId = await createOrder({
+      const orderPayload: any = {
         userId: user.uid,
         items: cartItems,
         totalAmount,
         paymentMethod,
         isEmergency,
-        address: '123 Main St, Apartment 4B, Koramangala, Bangalore', // Static for now, until address selection is implemented
-      });
+        address: activeAddress?.text || '123 Main St, Apartment 4B, Koramangala, Bangalore',
+        ...(prescriptionUrl && { prescriptionUrl }),
+        ...(prescriptionDescription && { notes: prescriptionDescription }),
+      };
+
+      if (activeAddress?.latitude && activeAddress?.longitude) {
+        orderPayload.latitude = activeAddress.latitude;
+        orderPayload.longitude = activeAddress.longitude;
+        orderPayload.customerLat = activeAddress.latitude;
+        orderPayload.customerLng = activeAddress.longitude;
+        orderPayload.userLat = activeAddress.latitude;
+        orderPayload.userLng = activeAddress.longitude;
+        orderPayload.location = {
+          lat: activeAddress.latitude,
+          lng: activeAddress.longitude,
+          latitude: activeAddress.latitude,
+          longitude: activeAddress.longitude,
+          timestamp: Date.now(),
+        };
+        orderPayload.coordinates = {
+          latitude: activeAddress.latitude,
+          longitude: activeAddress.longitude,
+        };
+      }
+
+      const orderId = await createOrder(orderPayload);
       
       clearCart();
       navigation.navigate('OrderTracking', { orderId });
@@ -76,9 +104,14 @@ export const CheckoutScreen = ({ navigation }: Props) => {
           </View>
           <View style={styles.addressRow}>
             <Ionicons name="location" size={20} color={themeColors.brand.primary} />
-            <View>
-              <Text style={[styles.addressName, { color: themeColors.text.primary }]}>Home</Text>
-              <Text style={[styles.addressText, { color: themeColors.text.secondary }]}>123 Main St, Apartment 4B, Koramangala, Bangalore</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.addressName, { color: themeColors.text.primary }]}>{activeAddress?.title || 'Delivery Location'}</Text>
+              <Text style={[styles.addressText, { color: themeColors.text.secondary }]}>{activeAddress?.text || 'No address selected'}</Text>
+              {activeAddress?.latitude && activeAddress?.longitude && (
+                <Text style={{ fontSize: 11, color: themeColors.status.success, fontWeight: '700', marginTop: 2 }}>
+                  📍 GPS Pinned ({activeAddress.latitude.toFixed(4)}, {activeAddress.longitude.toFixed(4)})
+                </Text>
+              )}
             </View>
           </View>
         </Card>

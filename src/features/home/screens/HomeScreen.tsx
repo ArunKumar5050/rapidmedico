@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useThemeColors, typography, spacing } from '../../../theme';
 import { useAddressStore } from '../../../store/useAddressStore';
 import { useReminderStore } from '../../../store/useReminderStore';
+import { useAuthStore } from '../../../store/auth';
 import { Card } from '../../../components/ui/Card';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,7 +18,8 @@ type Props = CompositeScreenProps<
 >;
 
 export const HomeScreen = ({ navigation }: Props) => {
-  const user = { firstName: 'Arun' };
+  const authUser = useAuthStore((state) => state.user);
+  const firstName = authUser?.name ? authUser.name.split(' ')[0] : (authUser?.phone || 'Guest');
   const themeColors = useThemeColors();
 
   const getDefaultAddress = useAddressStore((state) => state.getDefaultAddress);
@@ -42,7 +44,7 @@ export const HomeScreen = ({ navigation }: Props) => {
       iconColor: '#F59E0B',
       bgColor: 'rgba(245, 158, 11, 0.12)',
       borderColor: 'rgba(245, 158, 11, 0.3)',
-      action: () => navigation.navigate('SearchTab'),
+      action: () => navigation.navigate('CustomOrderRequest', {}),
     },
     {
       id: 'rx',
@@ -72,7 +74,7 @@ export const HomeScreen = ({ navigation }: Props) => {
       iconColor: '#8B5CF6',
       bgColor: 'rgba(139, 92, 246, 0.12)',
       borderColor: 'rgba(139, 92, 246, 0.3)',
-      action: () => Alert.alert('Lab Tests', 'Home sample pickup collection service coming soon!'),
+      action: () => Alert.alert('Coming Soon', 'This feature is coming soon!'),
     },
   ];
 
@@ -85,7 +87,7 @@ export const HomeScreen = ({ navigation }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.greeting, { color: themeColors.text.primary }]}>Hi, {user.firstName} 👋</Text>
+          <Text style={[styles.greeting, { color: themeColors.text.primary }]}>Hi, {firstName} 👋</Text>
           <TouchableOpacity
             style={[
               styles.addressPill,
@@ -109,7 +111,7 @@ export const HomeScreen = ({ navigation }: Props) => {
           style={[styles.avatarButton, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: themeColors.brand.primary }]}
           onPress={() => navigation.navigate('ProfileTab')}
         >
-          <Text style={[styles.avatarText, { color: themeColors.brand.primary }]}>AK</Text>
+          <Text style={[styles.avatarText, { color: themeColors.brand.primary }]}>{firstName.charAt(0).toUpperCase() || 'U'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -131,21 +133,40 @@ export const HomeScreen = ({ navigation }: Props) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Emergency Banner */}
+      {/* Medicine Advisor Banner */}
       <TouchableOpacity
         style={[styles.emergencyBanner, { backgroundColor: '#EF4444' }]}
         activeOpacity={0.92}
-        onPress={() => navigation.navigate('PrescriptionUpload')}
+        onPress={() => navigation.navigate('SupportChat')}
       >
         <View style={styles.emergencyIconBg}>
-          <Ionicons name="alarm" size={28} color="#FFFFFF" />
+          <Ionicons name="chatbubbles" size={24} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1 }}>
           <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>PRIORITY EXPRESS</Text>
+            <Text style={styles.badgeText}>ASK EXPERT</Text>
           </View>
-          <Text style={styles.emergencyTitle}>Emergency Medicine Order</Text>
-          <Text style={styles.emergencySubtitle}>Instant dispatch for critical healthcare needs</Text>
+          <Text style={styles.emergencyTitle}>Medicine Advisor</Text>
+          <Text style={styles.emergencySubtitle}>Chat with experts for medical queries</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      {/* Call Support Banner */}
+      <TouchableOpacity
+        style={[styles.emergencyBanner, { backgroundColor: '#10B981', marginTop: 0 }]}
+        activeOpacity={0.92}
+        onPress={() => Linking.openURL('tel:8302389192')}
+      >
+        <View style={styles.emergencyIconBg}>
+          <Ionicons name="call" size={24} color="#FFFFFF" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.badgeContainer, { backgroundColor: 'rgba(255, 255, 255, 0.25)' }]}>
+            <Text style={styles.badgeText}>CUSTOMER SUPPORT</Text>
+          </View>
+          <Text style={styles.emergencyTitle}>Call for Support</Text>
+          <Text style={styles.emergencySubtitle}>Get instant help with your orders</Text>
         </View>
         <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
       </TouchableOpacity>

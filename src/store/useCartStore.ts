@@ -11,6 +11,10 @@ export type CartItem = {
 
 interface CartStore {
   cartItems: CartItem[];
+  prescriptionUrl: string | null;
+  prescriptionDescription: string;
+  setPrescriptionUrl: (url: string | null) => void;
+  setPrescriptionDescription: (desc: string) => void;
   addItem: (item: CartItem) => void;
   updateQty: (id: string, delta: number) => void;
   clearCart: () => void;
@@ -26,6 +30,11 @@ const initialCartItems: CartItem[] = [
 
 export const useCartStore = create<CartStore>((set, get) => ({
   cartItems: initialCartItems,
+  prescriptionUrl: null,
+  prescriptionDescription: '',
+
+  setPrescriptionUrl: (url: string | null) => set({ prescriptionUrl: url }),
+  setPrescriptionDescription: (desc: string) => set({ prescriptionDescription: desc }),
 
   addItem: (newItem: CartItem) => {
     set((state) => {
@@ -67,7 +76,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   clearCart: () => {
     get().cartItems.forEach((item) => deleteDocument(COLLECTION_PATH, item.id));
-    set({ cartItems: [] });
+    set({ cartItems: [], prescriptionUrl: null, prescriptionDescription: '' });
   },
 
   initSync: () => {

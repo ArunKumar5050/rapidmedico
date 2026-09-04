@@ -25,15 +25,20 @@ const getStatusConfig = (status: string, themeColors: any) => {
     case 'confirmed':
       return { label: 'Preparing', color: themeColors.status.warning };
     case 'ASSIGNED':
-      return { label: 'Partner Assigned', color: themeColors.status.info };
+    case 'delivery boy assigned':
+    case 'delivery partner assigned':
+    case 'DELIVERY_PARTNER_ASSIGNED':
+      return { label: 'Delivery Boy Assigned', color: themeColors.brand.primary };
     case 'OUT_FOR_DELIVERY':
+    case 'en_route_delivery':
       return { label: 'Out for Delivery', color: themeColors.status.warning };
     case 'DELIVERED':
     case 'completed':
+      return { label: 'Delivered', color: themeColors.status.success };
     case 'paid':
-      return { label: 'Completed', color: themeColors.status.success };
+      return { label: 'Paid & Processing', color: themeColors.status.info };
     default:
-      return { label: 'Unknown', color: themeColors.text.muted };
+      return { label: status || 'Unknown', color: themeColors.text.muted };
   }
 };
 
@@ -118,29 +123,53 @@ export const OrdersListScreen = ({ navigation }: Props) => {
             
             const itemCount = !isCustom 
               ? (order as Order).items?.reduce((sum, item) => sum + item.qty, 0) || 0
-              : 1; // Custom orders are technically just 1 prescription upload
+              : (order as CustomOrder).medicines?.length || 1;
 
             const title = isCustom 
-              ? (order as CustomOrder).medicines?.join(', ') 
+              ? (order as CustomOrder).medicines?.join(', ') || 'Custom Medicine Request'
               : `${(order as Order).id?.substring(0, 8).toUpperCase() || 'ORDER'}`;
 
             const total = isCustom 
-              ? (order as CustomOrder).billAmount ? `₹${(order as CustomOrder).billAmount?.toFixed(2)}` : 'Pending Bill'
+              ? (order as CustomOrder).billAmount && (order as CustomOrder).billAmount! > 0
+                ? `₹${(order as CustomOrder).billAmount?.toFixed(2)}` 
+                : 'Billing is on process'
               : `₹${(order as Order).totalAmount?.toFixed(2)}`;
+
+            const isAssignedOrActive = 
+              order.status === 'delivery boy assigned' ||
+              order.status === 'delivery partner assigned' ||
+              order.status === 'ASSIGNED' ||
+              order.status === 'out_for_delivery' ||
+              order.status === 'OUT_FOR_DELIVERY' ||
+              order.status === 'paid' ||
+              order.status === 'completed';
+
+            const handleOrderPress = () => {
+              if (isCustom) {
+                if (
+                  order.status === 'delivery boy assigned' ||
+                  order.status === 'delivery partner assigned' ||
+                  order.status === 'paid' ||
+                  order.status === 'completed' ||
+                  order.status === 'out_for_delivery' ||
+                  (order as any).storeStatus === 'OUT_OF_DELIVERY' ||
+                  (order as any).storeStatus === 'DELIVERY_PARTNER_ASSIGNED' ||
+                  (order as any).storeStatus === 'PICKED_UP'
+                ) {
+                  navigation.navigate('OrderTracking', { orderId: order.id!, isCustomOrder: true });
+                } else if (order.status === 'confirmed' && (order as CustomOrder).billAmount && (order as CustomOrder).billAmount! > 0) {
+                  navigation.navigate('CustomOrderPayment', { orderId: order.id! });
+                } else {
+                  navigation.navigate('CustomOrderProcessing', { orderId: order.id! });
+                }
+              } else {
+                navigation.navigate('OrderTracking', { orderId: order.id! });
+              }
+            };
 
             return (
               <Card key={order.id} style={styles.orderCard}>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (isCustom) {
-                      // Navigate to custom order tracking/details
-                      navigation.navigate('CustomOrderProcessing', { orderId: order.id! });
-                    } else {
-                      // Navigate to standard order tracking
-                      navigation.navigate('OrderTracking', { orderId: order.id! });
-                    }
-                  }}
-                >
+                <TouchableOpacity onPress={handleOrderPress} activeOpacity={0.7}>
                   <View style={styles.cardHeader}>
                     <Text style={[styles.orderId, { color: themeColors.text.primary }]}>
                       {isCustom ? `Prescription Request` : title}
@@ -157,19 +186,19 @@ export const OrdersListScreen = ({ navigation }: Props) => {
                   </Text>
 
                   <View style={[styles.cardFooter, { borderTopColor: themeColors.border.default }]}>
-                    <Text style={[styles.itemsCount, { color: themeColors.text.secondary }]}>
+                    <Text style={[styles.itemsCount, { color: themeColors.text.secondary }]} numberOfLines={1}>
                       {isCustom ? title : `${itemCount} Items`}
                     </Text>
                     <Text style={[styles.totalText, { color: themeColors.brand.primary }]}>{total}</Text>
                   </View>
 
-                  {order.status === 'OUT_FOR_DELIVERY' && !isCustom && (
+                  {isAssignedOrActive && (
                     <TouchableOpacity 
                       style={[styles.trackBtn, { backgroundColor: themeColors.brand.primary }]}
-                      onPress={() => navigation.navigate('LiveTracking', { orderId: order.id! })}
+                      onPress={handleOrderPress}
                     >
-                      <Ionicons name="location" size={16} color="#FFFFFF" />
-                      <Text style={styles.trackBtnText}>Track Order Live</Text>
+                      <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                      <Text style={styles.trackBtnText}>Track Order & Delivery Boy</Text>
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>

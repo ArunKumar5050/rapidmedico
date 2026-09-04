@@ -15,9 +15,10 @@
     "expo": "~57.0.10",
     "expo-constants": "~57.0.9",
     "expo-font": "~57.0.1",
-    "expo-image-picker": "~57.0.7",
+    "expo-image-picker": "~57.0.8",
     "expo-location": "~57.0.7",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.12",
     "firebase": "^12.17.0",
     "react": "19.2.3",
     "react-hook-form": "^7.83.0",
@@ -45,6 +46,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "seed:medicines": "node scripts/seedMedicines.js",
     "postinstall": "patch-package"
   },
   "overrides": {
