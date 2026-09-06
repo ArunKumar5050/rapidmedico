@@ -114,7 +114,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
   
   // Real database values only - NO fake hardcoded defaults
   const realDeliveryOtp = (order as any)?.deliveryOtp || (order as any)?.otp || null;
-  const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedi Delivery Partner';
+  const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedicococo Delivery Partner';
   const realRiderPhone = (order as any)?.deliveryPartnerPhone || '';
   const realRiderVehicle = (order as any)?.deliveryPartnerVehicle || '';
 
@@ -296,7 +296,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.riderName, { color: themeColors.text.primary }]}>{realRiderName}</Text>
-                <Text style={[styles.riderRole, { color: themeColors.text.secondary }]}>RapidMedi Verified Partner</Text>
+                <Text style={[styles.riderRole, { color: themeColors.text.secondary }]}>RapidMedicococo Verified Partner</Text>
                 {realRiderVehicle ? (
                   <Text style={[styles.riderVehicleText, { color: themeColors.text.muted }]}>🛵 {realRiderVehicle}</Text>
                 ) : null}

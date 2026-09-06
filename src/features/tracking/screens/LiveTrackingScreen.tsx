@@ -183,7 +183,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
   );
 
   // Real database values only
-  const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedi Delivery Partner';
+  const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedicococo Delivery Partner';
   const realRiderPhone = (order as any)?.deliveryPartnerPhone || '';
   const realRiderVehicle = (order as any)?.deliveryPartnerVehicle || '';
   const realDeliveryOtp = (order as any)?.deliveryOtp || (order as any)?.otp || null;
@@ -223,7 +223,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <title>RapidMedi Live Tracking</title>
+        <title>RapidMedicococo Live Tracking</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
         <style>
@@ -307,7 +307,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
                 iconAnchor: [20, 20]
               });
               storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map)
-                .bindPopup('<b>RapidMedi Partner Store</b>');
+                .bindPopup('<b>RapidMedicococo Partner Store</b>');
 
               // 2. Customer Marker from database coordinates
               var customerIcon = L.divIcon({
@@ -479,7 +479,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.riderName, { color: themeColors.text.primary }]}>{realRiderName}</Text>
-              <Text style={[styles.riderRole, { color: themeColors.text.secondary }]}>RapidMedi Verified Partner</Text>
+              <Text style={[styles.riderRole, { color: themeColors.text.secondary }]}>RapidMedicococo Verified Partner</Text>
               {realRiderVehicle ? (
                 <Text style={[styles.vehicleText, { color: themeColors.text.muted }]}>🛵 {realRiderVehicle}</Text>
               ) : null}
@@ -544,7 +544,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
   },
   loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#0F172A',
