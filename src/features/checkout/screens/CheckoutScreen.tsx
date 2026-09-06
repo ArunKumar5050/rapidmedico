@@ -65,6 +65,8 @@ export const CheckoutScreen = ({ navigation }: Props) => {
         ...(prescriptionDescription && { notes: prescriptionDescription }),
         ...(prescriptionOption && { prescriptionOption }),
         status: prescriptionOption === 'contact_doctor' ? 'pending_doctor_confirmation' : 'placed',
+        userName: user?.name || (activeAddress?.receiver ? activeAddress.receiver.split('(')[0].trim() : 'Customer'),
+        userPhone: user?.phone || (activeAddress?.receiver ? activeAddress.receiver.match(/\((.*?)\)/)?.[1] : ''),
       };
 
       if (activeAddress?.latitude && activeAddress?.longitude) {

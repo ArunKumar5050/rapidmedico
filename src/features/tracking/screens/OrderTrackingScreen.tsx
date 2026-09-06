@@ -82,11 +82,14 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
       rawStoreStatus === 'ACCEPTED' ||
       rawStoreStatus === 'DELIVERY_REQUESTED' ||
       rawStoreStatus === 'DELIVERY_ASSIGNED' ||
-      rawStatus === 'paid'
+      rawStatus === 'paid' ||
+      rawStatus === 'confirmed' ||
+      rawStatus === 'preparing' ||
+      rawStatus === 'ready_for_pickup'
     );
 
   const isPendingDoctor = rawStatus === 'pending_doctor_confirmation';
-  const isPendingStore = rawStatus === 'pending' || rawStoreStatus === 'NEW';
+  const isPendingStore = rawStatus === 'pending' || rawStatus === 'placed' || rawStoreStatus === 'NEW';
 
   // Stepper Calculation
   let currentIndex = 0;
@@ -405,14 +408,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
         </View>
       )}
 
-      {isOutOfDelivery && !needsPayment && (
-        <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
-          <Button
-            title="Track Delivery Boy on Live Map"
-            onPress={() => navigation.navigate('LiveTracking', { orderId: order.id! })}
-          />
-        </View>
-      )}
+
     </SafeAreaView>
   );
 };

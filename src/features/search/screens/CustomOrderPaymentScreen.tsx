@@ -24,11 +24,12 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
       
       // If payment is already done or delivery partner is assigned, jump to tracking
       if (
-        updatedOrder?.status === 'paid' || 
+        updatedOrder?.paymentStatus === 'COMPLETED' ||
+        updatedOrder?.paymentStatus === 'COD' ||
         updatedOrder?.status === 'completed' ||
-        updatedOrder?.status === 'delivery boy assigned' ||
-        updatedOrder?.status === 'delivery partner assigned' ||
+        updatedOrder?.status === 'ready_for_pickup' ||
         updatedOrder?.status === 'out_for_delivery' ||
+        updatedOrder?.status === 'delivered' ||
         updatedOrder?.storeStatus === 'DELIVERY_PARTNER_ASSIGNED' ||
         updatedOrder?.storeStatus === 'PICKED_UP'
       ) {

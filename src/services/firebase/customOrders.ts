@@ -87,7 +87,7 @@ export const subscribeToCustomOrder = (orderId: string, callback: (order: Custom
 
 export const subscribeToUserCustomOrders = (userId: string, callback: (orders: CustomOrder[]) => void) => {
   const ordersRef = collection(db, 'customOrders');
-  const q = query(ordersRef, where('userId', '==', userId));
+  const q = query(ordersRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
   
   return onSnapshot(q, (snapshot) => {
     const orders: CustomOrder[] = [];
@@ -107,10 +107,22 @@ export const payCustomOrder = async (orderId: string, paymentMethod: 'RAZORPAY' 
       status: 'paid',
       paymentMethod,
       paymentStatus: paymentMethod === 'COD' ? 'COD' : 'COMPLETED',
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error paying custom order:", error);
-    throw error;
+    console.warn("[payCustomOrder] Failed on 'customOrders', trying 'orders':", error);
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, {
+        status: 'paid',
+        paymentMethod,
+        paymentStatus: paymentMethod === 'COD' ? 'COD' : 'COMPLETED',
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err2) {
+      console.error("Error paying custom order in both collections:", err2);
+      throw error;
+    }
   }
 };
 

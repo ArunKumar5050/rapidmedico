@@ -110,17 +110,27 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  const [uploadingImageIndexes, setUploadingImageIndexes] = useState<number[]>([]);
+
   const pickImage = async (index: number) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0].uri) {
-      const newMedicines = [...medicines];
-      newMedicines[index].image = result.assets[0].uri;
-      setMedicines(newMedicines);
+      setUploadingImageIndexes((prev) => [...prev, index]);
+      try {
+        const cloudinaryUrl = await CloudinaryService.uploadImage(result.assets[0].uri);
+        const newMedicines = [...medicines];
+        newMedicines[index].image = cloudinaryUrl;
+        setMedicines(newMedicines);
+      } catch (error) {
+        console.error("Failed to upload image:", error);
+      } finally {
+        setUploadingImageIndexes((prev) => prev.filter((i) => i !== index));
+      }
     }
   };
 
@@ -212,7 +222,10 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
       for (const m of medicines) {
         if (m.name.trim().length > 0 || m.image) {
           if (m.image) {
-            const url = await CloudinaryService.uploadImage(m.image);
+            let url = m.image;
+            if (url.startsWith('file://')) {
+               url = await CloudinaryService.uploadImage(url);
+            }
             uploadedImageUrls.push(url);
           }
           processedMeds.push(m);
@@ -311,6 +324,7 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
 
                       <TouchableOpacity 
                         onPress={() => pickImage(index)} 
+                        disabled={uploadingImageIndexes.includes(index)}
                         style={[
                           styles.iconBtn, 
                           { 
@@ -319,11 +333,15 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
                           }
                         ]}
                       >
-                        <Ionicons 
-                          name={med.image ? "checkmark-circle" : "camera-outline"} 
-                          size={22} 
-                          color={med.image ? themeColors.brand.primary : themeColors.text.secondary} 
-                        />
+                        {uploadingImageIndexes.includes(index) ? (
+                          <ActivityIndicator size="small" color={themeColors.brand.primary} />
+                        ) : (
+                          <Ionicons 
+                            name={med.image ? "checkmark-circle" : "camera-outline"} 
+                            size={22} 
+                            color={med.image ? themeColors.brand.primary : themeColors.text.secondary} 
+                          />
+                        )}
                       </TouchableOpacity>
 
                       {medicines.length > 1 && (

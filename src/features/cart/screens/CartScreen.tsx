@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Button } from '../../../components/ui/Button';
 import { TextInput } from '../../../components/ui/TextInput';
 import { useThemeColors, typography, spacing } from '../../../theme';
@@ -8,7 +8,7 @@ import { useCartStore } from '../../../store/useCartStore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import * as ImagePicker from 'expo-image-picker';
-
+import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
 type Props = NativeStackScreenProps<MainStackParamList>;
 
 export const CartScreen = ({ navigation }: Props) => {
@@ -17,17 +17,28 @@ export const CartScreen = ({ navigation }: Props) => {
 
   const [customMedName, setCustomMedName] = useState('');
   const [customMedImage, setCustomMedImage] = useState<string | null>(null);
+  
+  const [isUploadingCustom, setIsUploadingCustom] = useState(false);
+  const [isUploadingRx, setIsUploadingRx] = useState(false);
 
   const hasRxRequired = cartItems.some((item) => item.rxRequired);
 
   const pickCustomMedImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0].uri) {
-      setCustomMedImage(result.assets[0].uri);
+      setIsUploadingCustom(true);
+      try {
+        const cloudinaryUrl = await CloudinaryService.uploadImage(result.assets[0].uri);
+        setCustomMedImage(cloudinaryUrl);
+      } catch (error) {
+        console.error("Failed to upload custom medicine image:", error);
+      } finally {
+        setIsUploadingCustom(false);
+      }
     }
   };
 
@@ -50,11 +61,19 @@ export const CartScreen = ({ navigation }: Props) => {
   const pickPrescriptionImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0].uri) {
-      setPrescriptionUrl(result.assets[0].uri);
+      setIsUploadingRx(true);
+      try {
+        const cloudinaryUrl = await CloudinaryService.uploadImage(result.assets[0].uri);
+        setPrescriptionUrl(cloudinaryUrl);
+      } catch (error) {
+        console.error("Failed to upload prescription image:", error);
+      } finally {
+        setIsUploadingRx(false);
+      }
     }
   };
 
@@ -128,6 +147,7 @@ export const CartScreen = ({ navigation }: Props) => {
                 </View>
                 <TouchableOpacity 
                   onPress={pickCustomMedImage}
+                  disabled={isUploadingCustom}
                   style={[
                     styles.iconBtn, 
                     { 
@@ -136,11 +156,15 @@ export const CartScreen = ({ navigation }: Props) => {
                     }
                   ]}
                 >
-                  <Ionicons 
-                    name={customMedImage ? "checkmark-circle" : "camera-outline"} 
-                    size={24} 
-                    color={customMedImage ? themeColors.brand.primary : themeColors.text.secondary} 
-                  />
+                  {isUploadingCustom ? (
+                    <ActivityIndicator size="small" color={themeColors.brand.primary} />
+                  ) : (
+                    <Ionicons 
+                      name={customMedImage ? "checkmark-circle" : "camera-outline"} 
+                      size={24} 
+                      color={customMedImage ? themeColors.brand.primary : themeColors.text.secondary} 
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -197,9 +221,19 @@ export const CartScreen = ({ navigation }: Props) => {
                         </TouchableOpacity>
                       </View>
                     ) : (
-                      <TouchableOpacity style={[styles.uploadRxBtn, { borderColor: themeColors.brand.primary }]} onPress={pickPrescriptionImage}>
-                        <Ionicons name="cloud-upload-outline" size={24} color={themeColors.brand.primary} />
-                        <Text style={[styles.uploadRxText, { color: themeColors.brand.primary }]}>Select Image</Text>
+                      <TouchableOpacity 
+                        style={[styles.uploadRxBtn, { borderColor: themeColors.brand.primary }]} 
+                        onPress={pickPrescriptionImage}
+                        disabled={isUploadingRx}
+                      >
+                        {isUploadingRx ? (
+                          <ActivityIndicator size="small" color={themeColors.brand.primary} />
+                        ) : (
+                          <Ionicons name="cloud-upload-outline" size={24} color={themeColors.brand.primary} />
+                        )}
+                        <Text style={[styles.uploadRxText, { color: themeColors.brand.primary }]}>
+                          {isUploadingRx ? "Uploading..." : "Select Image"}
+                        </Text>
                       </TouchableOpacity>
                     )}
                   </View>

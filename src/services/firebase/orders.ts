@@ -2,7 +2,7 @@ import { collection, addDoc, doc, onSnapshot, serverTimestamp, query, where, ord
 import { db } from './firestore';
 import { CartItem } from '../../store/useCartStore';
 
-export type OrderStatus = 'PENDING' | 'PENDING_DOCTOR_CONFIRMATION' | 'PREPARING' | 'ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+export type OrderStatus = 'placed' | 'pending_doctor_confirmation' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded';
 
 export interface Order {
   id?: string;
@@ -53,7 +53,7 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & {
     const ordersRef = collection(db, 'orders');
     const newOrder = {
       ...orderData,
-      status: orderData.status || 'PENDING',
+      status: orderData.status || 'placed',
       paymentStatus: orderData.paymentMethod === 'COD' ? 'COD' : 'PENDING',
       createdAt: serverTimestamp(),
     };
@@ -77,7 +77,7 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & {
 
 export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]) => void) => {
   const ordersRef = collection(db, 'orders');
-  const q = query(ordersRef, where('userId', '==', userId));
+  const q = query(ordersRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
   
   return onSnapshot(q, (snapshot) => {
     const orders: Order[] = [];
@@ -109,6 +109,7 @@ export const payOrder = async (orderId: string, paymentMethod: 'RAZORPAY' | 'COD
     await updateDoc(docRef, {
       paymentMethod,
       paymentStatus: paymentMethod === 'COD' ? 'COD' : 'COMPLETED',
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Error paying order:", error);
@@ -121,7 +122,6 @@ export const assignDeliveryPartnerToOrder = async (orderId: string, partnerDetai
     const storePickupOtp = generateDeliveryOtp();
     const docRef = doc(db, 'orders', orderId);
     await updateDoc(docRef, {
-      status: 'ASSIGNED',
       storePickupOtp,
       deliveryPartnerAssignedAt: new Date().toISOString(),
       ...(partnerDetails || {}),

@@ -122,18 +122,19 @@ export const OrdersListScreen = ({ navigation }: Props) => {
             const isCustom = order.type === 'custom';
             
             const itemCount = !isCustom 
-              ? (order as Order).items?.reduce((sum, item) => sum + item.qty, 0) || 0
+              ? (order as Order).items?.reduce((sum, item: any) => sum + (item.qty || item.quantity || 1), 0) || 0
               : (order as CustomOrder).medicines?.length || 1;
 
             const title = isCustom 
               ? (order as CustomOrder).medicines?.join(', ') || 'Custom Medicine Request'
-              : `${(order as Order).id?.substring(0, 8).toUpperCase() || 'ORDER'}`;
+              : (order as Order).items?.map((i: any) => i.name).join(', ') || 'Medicine Order';
 
-            const total = isCustom 
-              ? (order as CustomOrder).billAmount && (order as CustomOrder).billAmount! > 0
-                ? `₹${(order as CustomOrder).billAmount?.toFixed(2)}` 
-                : 'Billing is on process'
-              : `₹${(order as Order).totalAmount?.toFixed(2)}`;
+            const actualBillAmount = (order as any).billAmount;
+            const total = (actualBillAmount && actualBillAmount > 0)
+              ? `₹${actualBillAmount.toFixed(2)}`
+              : (isCustom || !((order as Order).totalAmount))
+                ? 'Billing is on process'
+                : `₹${(order as Order).totalAmount?.toFixed(2)} (Est.)`;
 
             const isAssignedOrActive = 
               order.status === 'delivery boy assigned' ||

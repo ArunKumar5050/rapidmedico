@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { saveDocument, deleteDocument, syncCollection } from '../services/firebase/firestoreHelpers';
+import { useAuthStore } from './auth';
 
 export type CartItem = {
   id: string;
@@ -22,10 +23,14 @@ interface CartStore {
   addItem: (item: CartItem) => void;
   updateQty: (id: string, delta: number) => void;
   clearCart: () => void;
-  initSync: () => () => void;
+  initSync: (uid?: string) => () => void;
+  unsubscribeSync?: () => void;
 }
 
-const COLLECTION_PATH = 'users/demo_user_123/cart';
+const getCollectionPath = (uid?: string) => {
+  const userId = uid || useAuthStore.getState().user?.uid || 'demo_user_123';
+  return `users/${userId}/cart`;
+};
 
 const initialCartItems: CartItem[] = [];
 
@@ -51,7 +56,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
         updated = [...state.cartItems, newItem];
       }
       const targetItem = updated.find((i) => i.id === newItem.id)!;
-      saveDocument(COLLECTION_PATH, targetItem);
+      saveDocument(getCollectionPath(), targetItem);
       return { cartItems: updated };
     });
   },
@@ -64,10 +69,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
           const newQty = item.qty + delta;
           if (newQty > 0) {
             const updatedItem = { ...item, qty: newQty };
-            saveDocument(COLLECTION_PATH, updatedItem);
+            saveDocument(getCollectionPath(), updatedItem);
             updated.push(updatedItem);
           } else {
-            deleteDocument(COLLECTION_PATH, id);
+            deleteDocument(getCollectionPath(), id);
           }
         } else {
           updated.push(item);
@@ -78,19 +83,29 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   clearCart: () => {
-    get().cartItems.forEach((item) => deleteDocument(COLLECTION_PATH, item.id));
+    get().cartItems.forEach((item) => deleteDocument(getCollectionPath(), item.id));
     set({ cartItems: [], prescriptionUrl: null, prescriptionDescription: '', prescriptionOption: null });
   },
 
-  initSync: () => {
-    initialCartItems.forEach((item) => saveDocument(COLLECTION_PATH, item));
-    const unsubscribe = syncCollection<CartItem>(COLLECTION_PATH, (remoteCart) => {
-      if (remoteCart.length > 0) {
-        set({ cartItems: remoteCart });
-      }
+  initSync: (uid?: string) => {
+    const path = getCollectionPath(uid);
+    // Unsubscribe previous sync if exists
+    if (get().unsubscribeSync) {
+      get().unsubscribeSync!();
+    }
+    initialCartItems.forEach((item) => saveDocument(path, item));
+    const unsubscribe = syncCollection<CartItem>(path, (remoteCart) => {
+      set({ cartItems: remoteCart });
     });
+    set({ unsubscribeSync: unsubscribe });
     return unsubscribe;
   },
 }));
 
-useCartStore.getState().initSync();
+useAuthStore.subscribe((state, prevState) => {
+  if (state.user?.uid !== prevState.user?.uid) {
+    useCartStore.getState().initSync(state.user?.uid);
+  }
+});
+
+useCartStore.getState().initSync(useAuthStore.getState().user?.uid);
