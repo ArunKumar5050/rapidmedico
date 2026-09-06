@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ isAuthenticated: false, user: null }),
     }),
     {
-      name: 'rapidmedicoco-auth-storage',
+      name: 'rapidmedico-auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

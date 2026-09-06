@@ -39,7 +39,7 @@ export const RazorpayCheckoutScreen = ({ navigation, route }: Props) => {
           "key": "${razorpayKeyId}",
           "amount": "${Math.round(amount * 100)}", // Amount is in currency subunits (paise)
           "currency": "INR",
-          "name": "RapidMedicococo",
+          "name": "RapidMedico",
           "description": "Order Payment",
           "theme": {
               "color": "#121A2F"

@@ -35,7 +35,7 @@ export const ProfileScreen = ({ navigation }: Props) => {
     {
       title: 'Help & Preferences',
       items: [
-        { id: '6', label: 'Rapidmedi Support', icon: 'chatbubbles-outline', action: () => navigation.navigate('SupportChat') },
+        { id: '6', label: 'RapidMedico Support', icon: 'chatbubbles-outline', action: () => navigation.navigate('SupportChat') },
         { id: '7', label: 'App Settings', icon: 'settings-outline', action: () => navigation.navigate('Settings') },
       ],
     },
@@ -88,7 +88,7 @@ export const ProfileScreen = ({ navigation }: Props) => {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.versionText, { color: themeColors.text.secondary }]}>Rapidmedi v1.0.0 (Expo managed)</Text>
+        <Text style={[styles.versionText, { color: themeColors.text.secondary }]}>RapidMedico v1.0.0 (Expo managed)</Text>
       </ScrollView>
     </View>
   );

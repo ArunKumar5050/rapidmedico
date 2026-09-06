@@ -11,7 +11,7 @@ export const OnboardingScreen = ({ navigation }: Props) => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Rapidmedi</Text>
+        <Text style={styles.title}>RapidMedico</Text>
         <Text style={styles.subtitle}>Your trusted pharmacy, delivered fast.</Text>
       </View>
       <View style={styles.footer}>

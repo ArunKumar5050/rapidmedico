@@ -29,7 +29,7 @@ export const ReferralScreen = ({ navigation }: Props) => {
       <ScrollView style={styles.content}>
         <Card style={styles.card}>
           <Ionicons name="gift-outline" size={48} color={themeColors.brand.primary} style={{ alignSelf: 'center' }} />
-          <Text style={[styles.heading, { color: themeColors.text.primary }]}>Invite Friends to Rapidmedi</Text>
+          <Text style={[styles.heading, { color: themeColors.text.primary }]}>Invite Friends to RapidMedico</Text>
           <Text style={[styles.sub, { color: themeColors.text.secondary }]}>Earn ₹100 in your wallet for every friend who places their first medicine order!</Text>
 
           <TouchableOpacity style={[styles.codeBox, { backgroundColor: themeColors.background.primary, borderColor: themeColors.brand.primary }]} onPress={handleShare}>

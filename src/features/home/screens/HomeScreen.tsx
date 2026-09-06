@@ -311,7 +311,7 @@ export const HomeScreen = ({ navigation }: Props) => {
         <Ionicons name="shield-checkmark" size={22} color={themeColors.brand.primary} style={{ marginBottom: spacing.xs }} />
         <Text style={[styles.privacyTitle, { color: themeColors.text.primary }]}>100% Encrypted & Private</Text>
         <Text style={[styles.privacyText, { color: themeColors.text.secondary }]}>
-          RapidMedicococo guarantees complete privacy and secure HIPAA-compliant handling of all your prescription records.
+          RapidMedico guarantees complete privacy and secure HIPAA-compliant handling of all your prescription records.
         </Text>
       </View>
       <View style={{ height: 80 }} />

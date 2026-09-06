@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "RapidMedicococo",
-    "slug": "rapidmedicococo-customer",
+    "name": "RapidMedico",
+    "slug": "rapidmedico-customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "rapidmedicococo",
+    "scheme": "rapidmedico",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rapidmedicococo.customer",
+      "bundleIdentifier": "com.rapidmedico.customer",
       "infoPlist": {
-        "NSCameraUsageDescription": "RapidMedicococo needs camera access to photograph your prescription.",
-        "NSPhotoLibraryUsageDescription": "RapidMedicococo needs gallery access to attach an existing photo.",
-        "NSLocationWhenInUseUsageDescription": "RapidMedicococo uses your location to find delivery options and speed up address entry."
+        "NSCameraUsageDescription": "RapidMedico needs camera access to photograph your prescription.",
+        "NSPhotoLibraryUsageDescription": "RapidMedico needs gallery access to attach an existing photo.",
+        "NSLocationWhenInUseUsageDescription": "RapidMedico uses your location to find delivery options and speed up address entry."
       }
     },
     "android": {
@@ -21,7 +21,7 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/icon.png"
       },
-      "package": "com.rapidmedicococo.customer",
+      "package": "com.rapidmedico.customer",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -40,14 +40,14 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "RapidMedicococo uses your location to find delivery options and speed up address entry."
+          "locationAlwaysAndWhenInUsePermission": "RapidMedico uses your location to find delivery options and speed up address entry."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "RapidMedicococo needs gallery access to attach an existing photo.",
-          "cameraPermission": "RapidMedicococo needs camera access to photograph your prescription."
+          "photosPermission": "RapidMedico needs gallery access to attach an existing photo.",
+          "cameraPermission": "RapidMedico needs camera access to photograph your prescription."
         }
       ],
       "expo-font"

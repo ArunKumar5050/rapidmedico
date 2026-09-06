@@ -11,7 +11,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'SupportChat'>;
 export const SupportChatScreen = ({ navigation }: Props) => {
   const themeColors = useThemeColors();
   const [messages, setMessages] = useState([
-    { id: '1', sender: 'bot', text: 'Hello! Welcome to Rapidmedi Support. How can we assist you with your order today?' },
+    { id: '1', sender: 'bot', text: 'Hello! Welcome to RapidMedico Support. How can we assist you with your order today?' },
   ]);
   const [input, setInput] = useState('');
 
@@ -40,7 +40,7 @@ export const SupportChatScreen = ({ navigation }: Props) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: themeColors.text.primary }]}>Rapidmedi Support</Text>
+        <Text style={[styles.title, { color: themeColors.text.primary }]}>RapidMedico Support</Text>
         <TouchableOpacity onPress={() => Linking.openURL('tel:8302389192')}>
           <Ionicons name="call" size={24} color={themeColors.brand.primary} />
         </TouchableOpacity>

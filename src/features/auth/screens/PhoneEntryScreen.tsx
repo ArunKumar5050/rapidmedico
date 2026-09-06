@@ -61,7 +61,7 @@ export const PhoneEntryScreen = ({ navigation }: Props) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome to Rapidmedi</Text>
+        <Text style={styles.title}>Welcome to RapidMedico</Text>
         <Text style={styles.subtitle}>Enter your phone number to continue</Text>
 
         <View style={styles.phoneRow}>
