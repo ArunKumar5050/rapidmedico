@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../store/auth';
 import { createOrder } from '../../../services/firebase/orders';
 
 import { useAddressStore } from '../../../store/useAddressStore';
+import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Checkout'>;
 
@@ -39,16 +40,31 @@ export const CheckoutScreen = ({ navigation }: Props) => {
 
     setIsPlacingOrder(true);
     try {
+      let finalPrescriptionUrl = prescriptionUrl;
+      if (prescriptionUrl && prescriptionUrl.startsWith('file://')) {
+        finalPrescriptionUrl = await CloudinaryService.uploadImage(prescriptionUrl);
+      }
+
+      const updatedCartItems = await Promise.all(
+        cartItems.map(async (item) => {
+          if (item.isCustom && item.imageUrl && item.imageUrl.startsWith('file://')) {
+            const uploadedUrl = await CloudinaryService.uploadImage(item.imageUrl);
+            return { ...item, imageUrl: uploadedUrl };
+          }
+          return item;
+        })
+      );
+
       const orderPayload: any = {
         userId: user.uid,
-        items: cartItems,
+        items: updatedCartItems,
         totalAmount,
         isEmergency,
         address: activeAddress?.text || '123 Main St, Apartment 4B, Koramangala, Bangalore',
-        ...(prescriptionUrl && { prescriptionUrl }),
+        ...(finalPrescriptionUrl && { prescriptionUrl: finalPrescriptionUrl }),
         ...(prescriptionDescription && { notes: prescriptionDescription }),
         ...(prescriptionOption && { prescriptionOption }),
-        status: prescriptionOption === 'contact_doctor' ? 'PENDING_DOCTOR_CONFIRMATION' : 'PENDING',
+        status: prescriptionOption === 'contact_doctor' ? 'pending_doctor_confirmation' : 'placed',
       };
 
       if (activeAddress?.latitude && activeAddress?.longitude) {
