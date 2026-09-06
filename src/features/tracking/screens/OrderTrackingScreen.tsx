@@ -82,9 +82,11 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
       rawStoreStatus === 'ACCEPTED' ||
       rawStoreStatus === 'DELIVERY_REQUESTED' ||
       rawStoreStatus === 'DELIVERY_ASSIGNED' ||
-      rawStatus === 'confirmed' ||
       rawStatus === 'paid'
     );
+
+  const isPendingDoctor = rawStatus === 'pending_doctor_confirmation';
+  const isPendingStore = rawStatus === 'pending' || rawStoreStatus === 'NEW';
 
   // Stepper Calculation
   let currentIndex = 0;
@@ -99,7 +101,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
   }
 
   const steps = [
-    { label: 'Order Placed & Confirmed', done: currentIndex >= 0, active: currentIndex === 0 },
+    { label: isPendingDoctor ? 'Waiting for Doctor Call' : 'Order Placed & Finding Store', done: currentIndex >= 0, active: currentIndex === 0 },
     { label: 'Pharmacy Preparing & Packing Order', done: currentIndex >= 1, active: currentIndex === 1 },
     { label: 'Out for Delivery (Handed to Delivery Boy)', done: currentIndex >= 2, active: currentIndex === 2 },
     { label: 'Delivered', done: currentIndex >= 3, active: currentIndex === 3 },
@@ -121,16 +123,34 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
     }
   };
 
-  // Extract order items for details section
-  const isCustom = isCustomOrder || ('medicines' in order);
-  const itemsList = isCustom
-    ? (order as CustomOrder).itemizedBill && (order as CustomOrder).itemizedBill!.length > 0
-      ? (order as CustomOrder).itemizedBill!.map((it) => ({ name: it.medicine, qty: 1, price: it.price }))
-      : (order as CustomOrder).medicines?.map((m) => ({ name: m, qty: 1, price: (order as any).billAmount || 0 })) || []
-    : (order as Order).items?.map((it) => ({ name: it.name, qty: it.qty, price: it.unitPrice * it.qty })) || [];
+  let itemsList: any[] = [];
+  if ((order as any).itemizedBill && (order as any).itemizedBill.length > 0) {
+    itemsList = (order as any).itemizedBill.map((it: any) => ({
+      name: it.medicine || it.name,
+      qty: it.qty || it.quantity || 1,
+      price: it.price || ((it.unitPrice || 0) * (it.qty || it.quantity || 1))
+    }));
+  } else if (isCustomOrder || ('medicines' in order)) {
+    itemsList = (order as any).medicines?.map((m: string) => ({
+      name: m,
+      qty: 1,
+      price: (order as any).billAmount || 0
+    })) || [];
+  } else {
+    itemsList = (order as Order).items?.map((it: any) => ({
+      name: it.name,
+      qty: it.qty || it.quantity || 1,
+      price: (it.unitPrice !== undefined ? it.unitPrice : it.price || 0) * (it.qty || it.quantity || 1)
+    })) || [];
+  }
 
+  const isPaid = ['COMPLETED', 'completed', 'PAID', 'paid', 'COD', 'cod'].includes(String((order as any)?.paymentStatus || '').toUpperCase());
   const totalAmount = Number((order as any).billAmount || (order as any).totalAmount || 0);
-  const deliveryFee = Number((order as any)?.deliveryCharge ?? (totalAmount > 0 ? 200 : 0));
+  const hasPricedBill = Boolean(totalAmount && totalAmount > 0);
+  const showPrices = !isPendingStore && !isPendingDoctor && hasPricedBill;
+  const needsPayment = !isPendingStore && !isPendingDoctor && !isPaid && hasPricedBill;
+
+  const deliveryFee = (order as any).deliveryCharge !== undefined ? Number((order as any).deliveryCharge) : (hasPricedBill ? 100 : 0);
   const itemsSubtotal = Math.max(0, totalAmount - (deliveryFee > 0 && totalAmount >= deliveryFee ? deliveryFee : 0));
   const paymentMethod = (order as any)?.paymentMethod || ((order as any)?.paymentStatus === 'COD' ? 'Cash on Delivery' : 'Paid Online');
   const deliveryAddress = (order as any)?.address || 'Near Customer Location';
@@ -159,7 +179,11 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
                   ? 'Delivered Successfully 🎉' 
                   : isOutOfDelivery 
                     ? 'Delivery Boy is On The Way ⚡' 
-                    : 'Pharmacy is Preparing Order 🏥'
+                    : isPreparingOrReady
+                      ? 'Pharmacy is Preparing Order 🏥'
+                      : isPendingDoctor
+                        ? 'Wait for call from Dr. for 5 mins 🩺'
+                        : 'Finding nearest store... 🏪'
                 }
               </Text>
             </View>
@@ -183,7 +207,11 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
                     ? 'OUT FOR DELIVERY' 
                     : rawStoreStatus === 'READY' 
                       ? 'PACKED & READY' 
-                      : 'PREPARING'
+                      : isPreparingOrReady
+                        ? 'PREPARING'
+                        : isPendingDoctor
+                          ? 'WAITING DOCTOR'
+                          : 'SEARCHING STORE'
                 }
               </Text>
             </View>
@@ -215,6 +243,21 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
             ))}
           </View>
         </Card>
+
+        {/* Doctor Consultation Notice */}
+        {isPendingDoctor && currentIndex === 0 && (
+          <Card style={[styles.statusCard, { backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: themeColors.brand.primary }]}>
+            <View style={{ alignItems: 'center', padding: spacing.md }}>
+              <Ionicons name="call" size={40} color={themeColors.brand.primary} />
+              <Text style={{ ...typography.h2, color: themeColors.brand.primary, marginTop: spacing.sm, textAlign: 'center' }}>
+                Doctor Consultation Required
+              </Text>
+              <Text style={{ ...typography.body, color: themeColors.text.primary, marginTop: spacing.xs, textAlign: 'center', lineHeight: 20 }}>
+                Please wait for a call from our doctor within the next 5 minutes to confirm your prescription. After confirmation, your order will be sent to the nearest pharmacy.
+              </Text>
+            </View>
+          </Card>
+        )}
 
         {/* Delivery Verification OTP Box: ONLY SHOWN WHEN OUT OF DELIVERY */}
         {isOutOfDelivery && realDeliveryOtp && (
@@ -281,7 +324,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
                   <Text style={[styles.itemName, { color: themeColors.text.primary }]}>{item.name}</Text>
                   <Text style={[styles.itemQty, { color: themeColors.text.secondary }]}>Qty: {item.qty}</Text>
                 </View>
-                {item.price > 0 && (
+                {(showPrices && item.price > 0) && (
                   <Text style={[styles.itemPrice, { color: themeColors.text.primary }]}>₹{item.price.toFixed(2)}</Text>
                 )}
               </View>
@@ -300,30 +343,40 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
           </View>
 
           {/* Bill Summary */}
-          <View style={[styles.billSection, { borderTopColor: themeColors.border.default }]}>
-            <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Medicines Total</Text>
-              <Text style={[styles.billVal, { color: themeColors.text.primary }]}>
-                {totalAmount > 0 ? `₹${itemsSubtotal.toFixed(2)}` : 'Billing is on process'}
+          {(!isPendingStore && !isPendingDoctor && hasPricedBill) ? (
+            <View style={[styles.billSection, { borderTopColor: themeColors.border.default }]}>
+              <View style={styles.billRow}>
+                <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Medicines Total</Text>
+                <Text style={[styles.billVal, { color: themeColors.text.primary }]}>
+                  {totalAmount > 0 ? `₹${itemsSubtotal.toFixed(2)}` : 'Billing is on process'}
+                </Text>
+              </View>
+              <View style={styles.billRow}>
+                <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Delivery Fee</Text>
+                <Text style={[styles.billVal, { color: themeColors.text.primary }]}>
+                  {totalAmount > 0 ? `₹${deliveryFee.toFixed(2)}` : '₹100.00'}
+                </Text>
+              </View>
+              {isPaid && (
+                <View style={styles.billRow}>
+                  <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Payment Mode</Text>
+                  <Text style={[styles.billVal, { color: themeColors.brand.primary }]}>{paymentMethod}</Text>
+                </View>
+              )}
+              <View style={[styles.billRow, styles.totalRow]}>
+                <Text style={[styles.totalLabel, { color: themeColors.text.primary }]}>Grand Total</Text>
+                <Text style={[styles.totalVal, { color: themeColors.brand.primary }]}>
+                  {totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : 'Billing is on process'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.billSection, { borderTopColor: themeColors.border.default }]}>
+              <Text style={[styles.billLabel, { color: themeColors.text.secondary, textAlign: 'center', marginVertical: spacing.md }]}>
+                Billing is on process. Store will verify and provide the final bill.
               </Text>
             </View>
-            <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Delivery Fee</Text>
-              <Text style={[styles.billVal, { color: themeColors.text.primary }]}>
-                {totalAmount > 0 ? `₹${deliveryFee.toFixed(2)}` : '₹200.00'}
-              </Text>
-            </View>
-            <View style={styles.billRow}>
-              <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Payment Mode</Text>
-              <Text style={[styles.billVal, { color: themeColors.brand.primary }]}>{paymentMethod}</Text>
-            </View>
-            <View style={[styles.billRow, styles.totalRow]}>
-              <Text style={[styles.totalLabel, { color: themeColors.text.primary }]}>Grand Total</Text>
-              <Text style={[styles.totalVal, { color: themeColors.brand.primary }]}>
-                {totalAmount > 0 ? `₹${totalAmount.toFixed(2)}` : 'Billing is on process'}
-              </Text>
-            </View>
-          </View>
+          )}
         </Card>
 
         {/* Privacy Notice Banner */}
@@ -339,7 +392,19 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
       </ScrollView>
 
       {/* Footer CTA */}
-      {isOutOfDelivery && (
+      {needsPayment && (
+        <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
+          <Text style={{ ...typography.caption, color: themeColors.status.warning, marginBottom: spacing.sm, textAlign: 'center' }}>
+            Store has confirmed your order. Please complete payment to proceed.
+          </Text>
+          <Button
+            title={`Pay ₹${totalAmount.toFixed(2)}`}
+            onPress={() => navigation.navigate('PaymentMethods', { orderId: order.id!, amount: totalAmount, isCustomOrder: isCustom })}
+          />
+        </View>
+      )}
+
+      {isOutOfDelivery && !needsPayment && (
         <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
           <Button
             title="Track Delivery Boy on Live Map"

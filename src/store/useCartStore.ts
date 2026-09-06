@@ -7,14 +7,18 @@ export type CartItem = {
   qty: number;
   unitPrice: number;
   rxRequired: boolean;
+  isCustom?: boolean;
+  imageUrl?: string | null;
 };
 
 interface CartStore {
   cartItems: CartItem[];
   prescriptionUrl: string | null;
   prescriptionDescription: string;
+  prescriptionOption: 'upload' | 'contact_doctor' | null;
   setPrescriptionUrl: (url: string | null) => void;
   setPrescriptionDescription: (desc: string) => void;
+  setPrescriptionOption: (option: 'upload' | 'contact_doctor' | null) => void;
   addItem: (item: CartItem) => void;
   updateQty: (id: string, delta: number) => void;
   clearCart: () => void;
@@ -23,18 +27,17 @@ interface CartStore {
 
 const COLLECTION_PATH = 'users/demo_user_123/cart';
 
-const initialCartItems: CartItem[] = [
-  { id: '1', name: 'Paracetamol 650mg', qty: 2, unitPrice: 30.5, rxRequired: false },
-  { id: '2', name: 'Metformin 500mg', qty: 1, unitPrice: 45.0, rxRequired: true },
-];
+const initialCartItems: CartItem[] = [];
 
 export const useCartStore = create<CartStore>((set, get) => ({
   cartItems: initialCartItems,
   prescriptionUrl: null,
   prescriptionDescription: '',
+  prescriptionOption: null,
 
   setPrescriptionUrl: (url: string | null) => set({ prescriptionUrl: url }),
   setPrescriptionDescription: (desc: string) => set({ prescriptionDescription: desc }),
+  setPrescriptionOption: (option) => set({ prescriptionOption: option }),
 
   addItem: (newItem: CartItem) => {
     set((state) => {
@@ -76,7 +79,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   clearCart: () => {
     get().cartItems.forEach((item) => deleteDocument(COLLECTION_PATH, item.id));
-    set({ cartItems: [], prescriptionUrl: null, prescriptionDescription: '' });
+    set({ cartItems: [], prescriptionUrl: null, prescriptionDescription: '', prescriptionOption: null });
   },
 
   initSync: () => {

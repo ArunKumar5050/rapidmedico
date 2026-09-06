@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { TextInput } from '../../../components/ui/TextInput';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
+import { CartFloatingBar } from '../../../components/ui/CartFloatingBar';
 import { useThemeColors, typography, spacing } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import { searchMedicines, fetchMedicines } from '../../../services/firebase/medicines';
 import { MedicineItem, MEDICINE_CATALOG } from '../../../data/medicineCatalog';
+import { useCartStore } from '../../../store/useCartStore';
 
 type Props = NativeStackScreenProps<MainStackParamList>;
 
@@ -44,6 +46,17 @@ export const SearchScreen = ({ navigation }: Props) => {
   const [popularMedicines, setPopularMedicines] = useState<MedicineItem[]>([]);
 
   const themeColors = useThemeColors();
+  const addItem = useCartStore((state) => state.addItem);
+  
+  const handleAddToCart = (med: MedicineItem) => {
+    addItem({
+      id: med.id,
+      name: med.name,
+      qty: 1,
+      unitPrice: med.price,
+      rxRequired: med.rxRequired
+    });
+  };
 
   // Initialize and load default/popular medicines on mount
   useEffect(() => {
@@ -89,7 +102,7 @@ export const SearchScreen = ({ navigation }: Props) => {
   }, [query, selectedCategory]);
 
   const handleSelectMedicine = (med: MedicineItem) => {
-    navigation.navigate('CustomOrderRequest', { initialMedicineName: med.name });
+    navigation.navigate('MedicineDetail', { medicineId: med.id });
   };
 
   const displayedList = useMemo(() => {
@@ -234,10 +247,9 @@ export const SearchScreen = ({ navigation }: Props) => {
                     onPress={() => handleSelectMedicine(med)}
                   >
                     <View style={styles.medIconBox}>
-                      <Ionicons 
-                        name={med.category.includes('Injection') ? 'shield-checkmark' : med.category.includes('Syrup') ? 'flask' : 'medical'} 
-                        size={24} 
-                        color={themeColors.brand.primary} 
+                      <Image 
+                        source={require('../../../../assets/strip.png')} 
+                        style={{ width: 32, height: 32, resizeMode: 'contain' }} 
                       />
                     </View>
 
@@ -261,7 +273,7 @@ export const SearchScreen = ({ navigation }: Props) => {
                     <View style={styles.medAction}>
                       <TouchableOpacity 
                         style={[styles.addBtn, { backgroundColor: themeColors.brand.primary }]}
-                        onPress={() => handleSelectMedicine(med)}
+                        onPress={() => handleAddToCart(med)}
                       >
                         <Ionicons name="add" size={16} color="#FFFFFF" style={{ marginRight: 2 }} />
                         <Text style={styles.addBtnText}>Add</Text>
@@ -274,8 +286,9 @@ export const SearchScreen = ({ navigation }: Props) => {
           )}
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
+      <CartFloatingBar />
     </View>
   );
 };

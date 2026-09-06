@@ -1,21 +1,62 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Button } from '../../../components/ui/Button';
+import { TextInput } from '../../../components/ui/TextInput';
 import { useThemeColors, typography, spacing } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useCartStore } from '../../../store/useCartStore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
+import * as ImagePicker from 'expo-image-picker';
 
 type Props = NativeStackScreenProps<MainStackParamList>;
 
 export const CartScreen = ({ navigation }: Props) => {
-  const { cartItems, updateQty } = useCartStore();
+  const { cartItems, updateQty, addItem, prescriptionOption, setPrescriptionOption, prescriptionUrl, setPrescriptionUrl } = useCartStore();
   const themeColors = useThemeColors();
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.qty, 0);
-  const deliveryFee = cartItems.length > 0 ? 25.0 : 0.0;
-  const total = subtotal + deliveryFee;
+  const [customMedName, setCustomMedName] = useState('');
+  const [customMedImage, setCustomMedImage] = useState<string | null>(null);
+
+  const hasRxRequired = cartItems.some((item) => item.rxRequired);
+
+  const pickCustomMedImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0].uri) {
+      setCustomMedImage(result.assets[0].uri);
+    }
+  };
+
+  const handleAddCustomMed = () => {
+    if (!customMedName.trim() && !customMedImage) return;
+
+    addItem({
+      id: `custom_${Date.now()}`,
+      name: customMedName.trim() || 'Custom Order (Image)',
+      qty: 1,
+      unitPrice: 0,
+      rxRequired: false,
+      isCustom: true,
+      imageUrl: customMedImage,
+    });
+    setCustomMedName('');
+    setCustomMedImage(null);
+  };
+
+  const pickPrescriptionImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0].uri) {
+      setPrescriptionUrl(result.assets[0].uri);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
@@ -27,7 +68,7 @@ export const CartScreen = ({ navigation }: Props) => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         {cartItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cart-outline" size={64} color={themeColors.text.secondary} />
@@ -41,11 +82,14 @@ export const CartScreen = ({ navigation }: Props) => {
           </View>
         ) : (
           <>
+            {/* CART ITEMS LIST */}
             {cartItems.map((item) => (
               <View key={item.id} style={[styles.cartItem, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
+                {item.isCustom && item.imageUrl && (
+                  <Image source={{ uri: item.imageUrl }} style={styles.customItemImage} />
+                )}
                 <View style={styles.itemInfo}>
                   <Text style={[styles.itemName, { color: themeColors.text.primary }]}>{item.name}</Text>
-                  <Text style={[styles.itemPrice, { color: themeColors.brand.primary }]}>₹{(item.unitPrice * item.qty).toFixed(2)}</Text>
                   {item.rxRequired && (
                     <View style={styles.rxBadge}>
                       <Text style={styles.rxText}>Prescription Needed</Text>
@@ -65,21 +109,114 @@ export const CartScreen = ({ navigation }: Props) => {
               </View>
             ))}
 
-            <View style={[styles.billCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
-              <Text style={[styles.billTitle, { color: themeColors.text.primary }]}>Bill Summary</Text>
-              <View style={styles.billRow}>
-                <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Item Total</Text>
-                <Text style={[styles.billValue, { color: themeColors.text.primary }]}>₹{subtotal.toFixed(2)}</Text>
+            {/* MANUAL ORDER SECTION */}
+            <View style={[styles.sectionCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>Manual Order</Text>
+              <Text style={[styles.sectionDesc, { color: themeColors.text.secondary }]}>
+                Can't find your medicine? Write the name or upload a photo of it.
+              </Text>
+              
+              <View style={styles.manualInputRow}>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    label="Medicine Name"
+                    placeholder="Enter medicine name..."
+                    value={customMedName}
+                    onChangeText={setCustomMedName}
+                    containerStyle={{ marginBottom: 0 }}
+                  />
+                </View>
+                <TouchableOpacity 
+                  onPress={pickCustomMedImage}
+                  style={[
+                    styles.iconBtn, 
+                    { 
+                      backgroundColor: themeColors.background.primary, 
+                      borderColor: customMedImage ? themeColors.brand.primary : themeColors.border.default 
+                    }
+                  ]}
+                >
+                  <Ionicons 
+                    name={customMedImage ? "checkmark-circle" : "camera-outline"} 
+                    size={24} 
+                    color={customMedImage ? themeColors.brand.primary : themeColors.text.secondary} 
+                  />
+                </TouchableOpacity>
               </View>
-              <View style={styles.billRow}>
-                <Text style={[styles.billLabel, { color: themeColors.text.secondary }]}>Delivery Fee</Text>
-                <Text style={[styles.billValue, { color: themeColors.text.primary }]}>₹{deliveryFee.toFixed(2)}</Text>
-              </View>
-              <View style={[styles.billRow, styles.totalRow, { borderTopColor: themeColors.border.default }]}>
-                <Text style={[styles.totalLabel, { color: themeColors.text.primary }]}>To Pay</Text>
-                <Text style={[styles.totalValue, { color: themeColors.brand.primary }]}>₹{total.toFixed(2)}</Text>
-              </View>
+
+              {customMedImage && (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: customMedImage }} style={styles.previewImage} />
+                  <TouchableOpacity 
+                    style={styles.removeImageBtn}
+                    onPress={() => setCustomMedImage(null)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <Button 
+                title="Add to Cart" 
+                onPress={handleAddCustomMed} 
+                disabled={!customMedName.trim() && !customMedImage}
+                style={styles.addCustomBtn}
+                variant="outline"
+              />
             </View>
+
+            {/* PRESCRIPTION SECTION */}
+            {hasRxRequired && (
+              <View style={[styles.sectionCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
+                <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>Prescription Required</Text>
+                <Text style={[styles.sectionDesc, { color: themeColors.text.secondary }]}>
+                  Some medicines in your cart require a valid doctor's prescription.
+                </Text>
+
+                <TouchableOpacity 
+                  style={[
+                    styles.radioOption, 
+                    { borderColor: prescriptionOption === 'upload' ? themeColors.brand.primary : themeColors.border.default }
+                  ]}
+                  onPress={() => setPrescriptionOption('upload')}
+                >
+                  <Ionicons name={prescriptionOption === 'upload' ? "radio-button-on" : "radio-button-off"} size={20} color={prescriptionOption === 'upload' ? themeColors.brand.primary : themeColors.text.secondary} />
+                  <Text style={[styles.radioText, { color: themeColors.text.primary }]}>Upload Prescription</Text>
+                </TouchableOpacity>
+
+                {prescriptionOption === 'upload' && (
+                  <View style={styles.uploadRxContainer}>
+                    {prescriptionUrl ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image source={{ uri: prescriptionUrl }} style={styles.previewImage} />
+                        <TouchableOpacity 
+                          style={styles.removeImageBtn}
+                          onPress={() => setPrescriptionUrl(null)}
+                        >
+                          <Ionicons name="close-circle" size={24} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={[styles.uploadRxBtn, { borderColor: themeColors.brand.primary }]} onPress={pickPrescriptionImage}>
+                        <Ionicons name="cloud-upload-outline" size={24} color={themeColors.brand.primary} />
+                        <Text style={[styles.uploadRxText, { color: themeColors.brand.primary }]}>Select Image</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                <TouchableOpacity 
+                  style={[
+                    styles.radioOption, 
+                    { borderColor: prescriptionOption === 'contact_doctor' ? themeColors.brand.primary : themeColors.border.default, marginTop: spacing.sm }
+                  ]}
+                  onPress={() => setPrescriptionOption('contact_doctor')}
+                >
+                  <Ionicons name={prescriptionOption === 'contact_doctor' ? "radio-button-on" : "radio-button-off"} size={20} color={prescriptionOption === 'contact_doctor' ? themeColors.brand.primary : themeColors.text.secondary} />
+                  <Text style={[styles.radioText, { color: themeColors.text.primary }]}>Contact Doctor for Prescription</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -89,6 +226,7 @@ export const CartScreen = ({ navigation }: Props) => {
           <Button
             title="Proceed to Checkout"
             onPress={() => navigation.navigate('Checkout')}
+            disabled={hasRxRequired && (!prescriptionOption || (prescriptionOption === 'upload' && !prescriptionUrl))}
           />
         </View>
       )}
@@ -124,15 +262,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 1,
   },
+  customItemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    marginRight: spacing.sm,
+  },
   itemInfo: {
     flex: 1,
   },
   itemName: {
     ...typography.bodyStrong,
-  },
-  itemPrice: {
-    ...typography.body,
-    marginTop: 2,
   },
   rxBadge: {
     alignSelf: 'flex-start',
@@ -161,37 +301,84 @@ const styles = StyleSheet.create({
     ...typography.bodyStrong,
     paddingHorizontal: spacing.sm,
   },
-  billCard: {
+  sectionCard: {
     padding: spacing.lg,
     borderRadius: spacing.md,
     marginTop: spacing.md,
     borderWidth: 1,
   },
-  billTitle: {
+  sectionTitle: {
     ...typography.h2,
+    marginBottom: 4,
+  },
+  sectionDesc: {
+    ...typography.body,
+    fontSize: 13,
     marginBottom: spacing.md,
   },
-  billRow: {
+  manualInputRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  billLabel: {
-    ...typography.body,
+  iconBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    marginTop: 18,
   },
-  billValue: {
-    ...typography.body,
+  imagePreviewContainer: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    position: 'relative',
   },
-  totalRow: {
-    borderTopWidth: 1,
-    paddingTop: spacing.md,
-    marginTop: spacing.md,
+  previewImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: spacing.sm,
   },
-  totalLabel: {
-    ...typography.h2,
+  removeImageBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
   },
-  totalValue: {
-    ...typography.h2,
+  addCustomBtn: {
+    marginTop: spacing.sm,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: spacing.sm,
+    borderWidth: 1,
+    gap: spacing.sm,
+  },
+  radioText: {
+    ...typography.bodyStrong,
+  },
+  uploadRxContainer: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  uploadRxBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    borderRadius: spacing.sm,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: spacing.xs,
+    marginVertical: spacing.sm,
+  },
+  uploadRxText: {
+    ...typography.bodyStrong,
   },
   emptyState: {
     alignItems: 'center',
@@ -216,3 +403,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
 });
+

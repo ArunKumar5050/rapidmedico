@@ -15,12 +15,11 @@ import { useAddressStore } from '../../../store/useAddressStore';
 type Props = NativeStackScreenProps<MainStackParamList, 'Checkout'>;
 
 export const CheckoutScreen = ({ navigation }: Props) => {
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'COD'>('UPI');
   const [isEmergency, setIsEmergency] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
   const themeColors = useThemeColors();
-  const { cartItems, clearCart, prescriptionUrl, prescriptionDescription } = useCartStore();
+  const { cartItems, clearCart, prescriptionUrl, prescriptionDescription, prescriptionOption } = useCartStore();
   const { user } = useAuthStore();
   const { getDefaultAddress } = useAddressStore();
   const activeAddress = getDefaultAddress();
@@ -44,11 +43,12 @@ export const CheckoutScreen = ({ navigation }: Props) => {
         userId: user.uid,
         items: cartItems,
         totalAmount,
-        paymentMethod,
         isEmergency,
         address: activeAddress?.text || '123 Main St, Apartment 4B, Koramangala, Bangalore',
         ...(prescriptionUrl && { prescriptionUrl }),
         ...(prescriptionDescription && { notes: prescriptionDescription }),
+        ...(prescriptionOption && { prescriptionOption }),
+        status: prescriptionOption === 'contact_doctor' ? 'PENDING_DOCTOR_CONFIRMATION' : 'PENDING',
       };
 
       if (activeAddress?.latitude && activeAddress?.longitude) {
@@ -132,53 +132,13 @@ export const CheckoutScreen = ({ navigation }: Props) => {
           </View>
         </Card>
 
-        {/* Payment Options */}
-        <Card style={styles.sectionCard}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>Select Payment Method</Text>
 
-          <TouchableOpacity 
-            style={[
-              styles.payOption, 
-              { borderColor: paymentMethod === 'UPI' ? themeColors.brand.primary : themeColors.border.default }
-            ]}
-            onPress={() => setPaymentMethod('UPI')}
-          >
-            <Ionicons name="qr-code-outline" size={20} color={themeColors.brand.primary} />
-            <Text style={[styles.payText, { color: themeColors.text.primary }]}>UPI / Google Pay / PhonePe</Text>
-            {paymentMethod === 'UPI' && <Ionicons name="checkmark-circle" size={20} color={themeColors.brand.primary} />}
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[
-              styles.payOption, 
-              { borderColor: paymentMethod === 'CARD' ? themeColors.brand.primary : themeColors.border.default }
-            ]}
-            onPress={() => setPaymentMethod('CARD')}
-          >
-            <Ionicons name="card-outline" size={20} color={themeColors.brand.primary} />
-            <Text style={[styles.payText, { color: themeColors.text.primary }]}>Credit / Debit Card</Text>
-            {paymentMethod === 'CARD' && <Ionicons name="checkmark-circle" size={20} color={themeColors.brand.primary} />}
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[
-              styles.payOption, 
-              { borderColor: paymentMethod === 'COD' ? themeColors.brand.primary : themeColors.border.default }
-            ]}
-            onPress={() => setPaymentMethod('COD')}
-          >
-            <Ionicons name="cash-outline" size={20} color={themeColors.brand.primary} />
-            <Text style={[styles.payText, { color: themeColors.text.primary }]}>Cash on Delivery</Text>
-            {paymentMethod === 'COD' && <Ionicons name="checkmark-circle" size={20} color={themeColors.brand.primary} />}
-          </TouchableOpacity>
-        </Card>
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
-        <View style={styles.priceRow}>
-          <Text style={[styles.totalLabel, { color: themeColors.text.secondary }]}>Total Payable</Text>
-          <Text style={[styles.totalPrice, { color: themeColors.brand.primary }]}>₹{totalAmount.toFixed(2)}</Text>
-        </View>
+        <Text style={{ ...typography.caption, color: themeColors.text.secondary, marginBottom: spacing.md, textAlign: 'center' }}>
+          Final bill amount will be calculated by the pharmacy upon confirmation.
+        </Text>
         <Button
           title="Place Order"
           onPress={handlePlaceOrder}
@@ -243,12 +203,4 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     borderTopWidth: 1,
   },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  totalLabel: { ...typography.body },
-  totalPrice: { ...typography.h1 },
 });

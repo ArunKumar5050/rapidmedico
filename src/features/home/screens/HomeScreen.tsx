@@ -5,6 +5,7 @@ import { useAddressStore } from '../../../store/useAddressStore';
 import { useReminderStore } from '../../../store/useReminderStore';
 import { useAuthStore } from '../../../store/auth';
 import { Card } from '../../../components/ui/Card';
+import { CartFloatingBar } from '../../../components/ui/CartFloatingBar';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TabParamList } from '../../../app/navigation/TabNavigator';
@@ -79,7 +80,8 @@ export const HomeScreen = ({ navigation }: Props) => {
   ];
 
   return (
-    <ScrollView
+    <View style={{ flex: 1, backgroundColor: themeColors.background.primary }}>
+      <ScrollView
       style={[styles.container, { backgroundColor: themeColors.background.primary }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -312,7 +314,10 @@ export const HomeScreen = ({ navigation }: Props) => {
           RapidMedi guarantees complete privacy and secure HIPAA-compliant handling of all your prescription records.
         </Text>
       </View>
-    </ScrollView>
+      <View style={{ height: 80 }} />
+      </ScrollView>
+      <CartFloatingBar />
+    </View>
   );
 };
 

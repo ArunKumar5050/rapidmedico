@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { useThemeColors, typography, spacing } from '../../../theme';
@@ -8,6 +8,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import { getMedicineById } from '../../../services/firebase/medicines';
 import { MedicineItem, MEDICINE_CATALOG } from '../../../data/medicineCatalog';
+import { useCartStore } from '../../../store/useCartStore';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'MedicineDetail'>;
 
@@ -33,7 +34,14 @@ export const MedicineDetailScreen = ({ route, navigation }: Props) => {
 
   const handleOrderMedicine = () => {
     if (!medicine) return;
-    navigation.navigate('CustomOrderRequest', { initialMedicineName: medicine.name });
+    useCartStore.getState().addItem({
+      id: medicine.id,
+      name: medicine.name,
+      qty: 1,
+      unitPrice: medicine.price,
+      rxRequired: medicine.rxRequired
+    });
+    navigation.goBack();
   };
 
   if (loading || !medicine) {
@@ -58,10 +66,9 @@ export const MedicineDetailScreen = ({ route, navigation }: Props) => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.imageCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
-          <Ionicons 
-            name={medicine.category.includes('Injection') ? 'shield-checkmark' : medicine.category.includes('Syrup') ? 'flask' : 'medical'} 
-            size={64} 
-            color={themeColors.brand.primary} 
+          <Image 
+            source={require('../../../../assets/strip.png')} 
+            style={{ width: '100%', height: '100%', resizeMode: 'cover' }} 
           />
           <View style={[styles.formBadge, { backgroundColor: themeColors.brand.primary + '15' }]}>
             <Text style={[styles.formBadgeText, { color: themeColors.brand.primary }]}>{medicine.dosageForm}</Text>
@@ -112,7 +119,7 @@ export const MedicineDetailScreen = ({ route, navigation }: Props) => {
 
       <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
         <Button
-          title="Add to Custom Order"
+          title="Add to Cart"
           onPress={handleOrderMedicine}
         />
       </View>
@@ -145,6 +152,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     borderWidth: 1,
     position: 'relative',
+    overflow: 'hidden',
   },
   formBadge: {
     position: 'absolute',

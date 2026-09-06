@@ -1,15 +1,15 @@
 {
   "expo": {
     "name": "RapidMedico",
-    "slug": "rapidmedi-customer",
+    "slug": "rapidmedico-customer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "rapidmedi",
+    "scheme": "rapidmedico",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rapidmedi.customer",
+      "bundleIdentifier": "com.rapidmedico.customer",
       "infoPlist": {
         "NSCameraUsageDescription": "RapidMedico needs camera access to photograph your prescription.",
         "NSPhotoLibraryUsageDescription": "RapidMedico needs gallery access to attach an existing photo.",
@@ -21,7 +21,7 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/icon.png"
       },
-      "package": "com.rapidmedi.customer",
+      "package": "com.rapidmedico.customer",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",

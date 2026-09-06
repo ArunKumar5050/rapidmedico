@@ -51,7 +51,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
   }
 
   // Calculate totals
-  const deliveryFee = order.deliveryCharge ?? 200;
+  const deliveryFee = order.deliveryCharge ?? 100;
   const finalTotal = order.billAmount || 0;
   const hasPricedBill = Boolean(order.billAmount && order.billAmount > 0);
   

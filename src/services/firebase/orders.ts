@@ -2,14 +2,14 @@ import { collection, addDoc, doc, onSnapshot, serverTimestamp, query, where, ord
 import { db } from './firestore';
 import { CartItem } from '../../store/useCartStore';
 
-export type OrderStatus = 'PENDING' | 'PREPARING' | 'ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+export type OrderStatus = 'PENDING' | 'PENDING_DOCTOR_CONFIRMATION' | 'PREPARING' | 'ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
 
 export interface Order {
   id?: string;
   userId: string;
   items: CartItem[];
   totalAmount: number;
-  paymentMethod: 'UPI' | 'CARD' | 'COD';
+  paymentMethod?: 'UPI' | 'CARD' | 'COD' | 'PENDING';
   isEmergency: boolean;
   address: string; // Storing simple address string for now
   status: OrderStatus;
@@ -50,12 +50,12 @@ export const generateDeliveryOtp = (): string => {
   return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
-export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'status'>) => {
+export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & { status?: OrderStatus }) => {
   try {
     const ordersRef = collection(db, 'orders');
     const newOrder = {
-      ...orderData,
       status: 'PENDING',
+      ...orderData,
       paymentStatus: orderData.paymentMethod === 'COD' ? 'COD' : 'PENDING',
       createdAt: serverTimestamp(),
     };
