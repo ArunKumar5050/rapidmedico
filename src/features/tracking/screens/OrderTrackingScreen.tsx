@@ -123,6 +123,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
     }
   };
 
+  const isCustom = isCustomOrder || ('medicines' in order);
   let itemsList: any[] = [];
   if ((order as any).itemizedBill && (order as any).itemizedBill.length > 0) {
     itemsList = (order as any).itemizedBill.map((it: any) => ({

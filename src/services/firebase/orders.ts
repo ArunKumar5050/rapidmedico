@@ -21,10 +21,8 @@ export interface Order {
   prescriptionUrl?: string; // Optional: attached if uploaded
   paymentStatus?: 'PENDING' | 'COMPLETED' | 'FAILED' | 'COD';
   notes?: string;
-  deliveryOtp?: string;
-  otp?: string;
-  pickupOtp?: string;
-  storePickupOtp?: string;
+  deliveryOtp?: string;     // OTP shown by delivery boy to customer at doorstep
+  storePickupOtp?: string; // OTP shown by delivery boy to store owner at pickup
   deliveryPartnerAssignedAt?: string;
   latitude?: number;
   longitude?: number;
@@ -54,8 +52,8 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & {
   try {
     const ordersRef = collection(db, 'orders');
     const newOrder = {
-      status: 'PENDING',
       ...orderData,
+      status: orderData.status || 'PENDING',
       paymentStatus: orderData.paymentMethod === 'COD' ? 'COD' : 'PENDING',
       createdAt: serverTimestamp(),
     };
@@ -120,19 +118,16 @@ export const payOrder = async (orderId: string, paymentMethod: 'RAZORPAY' | 'COD
 
 export const assignDeliveryPartnerToOrder = async (orderId: string, partnerDetails?: any) => {
   try {
-    const otp = generateDeliveryOtp();
+    const storePickupOtp = generateDeliveryOtp();
     const docRef = doc(db, 'orders', orderId);
     await updateDoc(docRef, {
       status: 'ASSIGNED',
-      deliveryOtp: otp,
-      otp: otp,
-      pickupOtp: otp,
-      storePickupOtp: otp,
+      storePickupOtp,
       deliveryPartnerAssignedAt: new Date().toISOString(),
       ...(partnerDetails || {}),
       updatedAt: new Date().toISOString()
     });
-    return otp;
+    return storePickupOtp;
   } catch (error) {
     console.error("Error assigning delivery partner to order:", error);
     throw error;

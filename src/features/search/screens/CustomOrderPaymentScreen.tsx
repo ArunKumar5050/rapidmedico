@@ -6,6 +6,7 @@ import { useThemeColors, typography, spacing } from '../../../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import { subscribeToCustomOrder, CustomOrder } from '../../../services/firebase/customOrders';
+import { subscribeToOrder } from '../../../services/firebase/orders';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '../../../components/ui/Header';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,12 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 type Props = NativeStackScreenProps<MainStackParamList, 'CustomOrderPayment'>;
 
 export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
-  const { orderId } = route.params;
+  const { orderId, isCustomOrder = true } = route.params;
   const themeColors = useThemeColors();
-  const [order, setOrder] = useState<CustomOrder | null>(null);
+  const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToCustomOrder(orderId, (updatedOrder) => {
+    const handleUpdate = (updatedOrder: any) => {
       setOrder(updatedOrder);
       
       // If payment is already done or delivery partner is assigned, jump to tracking
@@ -31,12 +32,19 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
         updatedOrder?.storeStatus === 'DELIVERY_PARTNER_ASSIGNED' ||
         updatedOrder?.storeStatus === 'PICKED_UP'
       ) {
-        navigation.replace('OrderTracking', { orderId: updatedOrder.id!, isCustomOrder: true });
+        navigation.replace('OrderTracking', { orderId: updatedOrder.id!, isCustomOrder });
       }
-    });
+    };
+
+    let unsubscribe: () => void;
+    if (isCustomOrder) {
+      unsubscribe = subscribeToCustomOrder(orderId, handleUpdate);
+    } else {
+      unsubscribe = subscribeToOrder(orderId, handleUpdate);
+    }
 
     return () => unsubscribe();
-  }, [orderId, navigation]);
+  }, [orderId, navigation, isCustomOrder]);
 
   if (!order) {
     return (
@@ -56,7 +64,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
   const hasPricedBill = Boolean(order.billAmount && order.billAmount > 0);
   
   const itemTotal = order.itemizedBill && order.itemizedBill.length > 0
-    ? order.itemizedBill.reduce((sum, item) => sum + item.price, 0)
+    ? order.itemizedBill.reduce((sum: number, item: any) => sum + (item.price || 0), 0)
     : Math.max(0, finalTotal - deliveryFee);
 
   const handlePayment = () => {
@@ -68,7 +76,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
     navigation.navigate('PaymentMethods', { 
       orderId, 
       amount: finalTotal, 
-      isCustomOrder: true 
+      isCustomOrder
     });
   };
 
@@ -109,7 +117,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
             <Card style={[styles.previewCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
               <Text style={[styles.previewHeading, { color: themeColors.text.primary }]}>Requested Medicines</Text>
               {order.medicines && order.medicines.length > 0 ? (
-                order.medicines.map((med, idx) => (
+                order.medicines.map((med: string, idx: number) => (
                   <View key={idx} style={[styles.previewRow, { borderBottomColor: themeColors.border.default }]}>
                     <Ionicons name="medkit-outline" size={16} color={themeColors.brand.primary} />
                     <Text style={[styles.previewMedText, { color: themeColors.text.primary }]}>{med}</Text>
@@ -137,7 +145,7 @@ export const CustomOrderPaymentScreen = ({ navigation, route }: Props) => {
               <Text style={[styles.billTitle, { color: themeColors.text.primary }]}>Itemized Bill</Text>
               
               {order.itemizedBill && order.itemizedBill.length > 0 ? (
-                order.itemizedBill.map((item, index) => (
+                order.itemizedBill.map((item: any, index: number) => (
                   <View key={index} style={[styles.row, { borderBottomColor: themeColors.border.default }]}>
                     <Text style={[styles.label, { color: themeColors.text.secondary, flex: 1 }]}>{item.medicine}</Text>
                     <Text style={[styles.value, { color: themeColors.text.primary }]}>₹{item.price.toFixed(2)}</Text>

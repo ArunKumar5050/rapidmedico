@@ -4,6 +4,7 @@ import { useThemeColors, typography, spacing } from '../../../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import { subscribeToCustomOrder, CustomOrder } from '../../../services/firebase/customOrders';
+import { subscribeToOrder } from '../../../services/firebase/orders';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '../../../components/ui/Header';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,9 +13,9 @@ import { Card } from '../../../components/ui/Card';
 type Props = NativeStackScreenProps<MainStackParamList, 'CustomOrderProcessing'>;
 
 export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
-  const { orderId } = route.params;
+  const { orderId, isCustomOrder = true } = route.params;
   const themeColors = useThemeColors();
-  const [order, setOrder] = useState<CustomOrder | null>(null);
+  const [order, setOrder] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes countdown (120 seconds)
 
   // 2-minute countdown timer
@@ -33,7 +34,7 @@ export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
   };
 
   useEffect(() => {
-    const unsubscribe = subscribeToCustomOrder(orderId, (updatedOrder) => {
+    const handleUpdate = (updatedOrder: any) => {
       setOrder(updatedOrder);
       
       if (
@@ -45,19 +46,26 @@ export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
         updatedOrder?.storeStatus === 'DELIVERY_PARTNER_ASSIGNED' ||
         updatedOrder?.storeStatus === 'PICKED_UP'
       ) {
-        navigation.replace('OrderTracking', { orderId: updatedOrder.id!, isCustomOrder: true });
+        navigation.replace('OrderTracking', { orderId: updatedOrder.id!, isCustomOrder });
       } else if (
         updatedOrder?.status === 'confirmed' && 
         updatedOrder?.billAmount && 
         updatedOrder.billAmount > 0
       ) {
         // Once the store accepts AND prices the order with a valid billAmount, redirect to payment
-        navigation.replace('CustomOrderPayment', { orderId: updatedOrder.id! });
+        navigation.replace('CustomOrderPayment', { orderId: updatedOrder.id!, isCustomOrder });
       }
-    });
+    };
+
+    let unsubscribe: () => void;
+    if (isCustomOrder) {
+      unsubscribe = subscribeToCustomOrder(orderId, handleUpdate);
+    } else {
+      unsubscribe = subscribeToOrder(orderId, handleUpdate);
+    }
 
     return () => unsubscribe();
-  }, [orderId, navigation]);
+  }, [orderId, navigation, isCustomOrder]);
 
   const isStoreAccepted = 
     order?.status === 'confirmed' || 
@@ -65,6 +73,7 @@ export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
     (order as any)?.storeStatus === 'PREPARING' ||
     Boolean((order as any)?.storeId);
 
+  const isPendingDoctor = order?.status === 'PENDING_DOCTOR_CONFIRMATION';
   const hasBillAmount = Boolean(order?.billAmount && order.billAmount > 0);
 
   return (
@@ -72,7 +81,40 @@ export const CustomOrderProcessingScreen = ({ navigation, route }: Props) => {
       <Header title="Order Processing" showBack onBack={() => navigation.goBack()} />
       <View style={styles.content}>
         
-        {isStoreAccepted && !hasBillAmount ? (
+        {isPendingDoctor ? (
+          // STATE 0: Waiting for Doctor Consultation
+          <View style={styles.stateWrapper}>
+            <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.12)', borderColor: themeColors.brand.primary }]}>
+              <Ionicons name="call" size={48} color={themeColors.brand.primary} />
+            </View>
+
+            <View style={[styles.storeAcceptedBadge, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+              <Ionicons name="medical" size={16} color={themeColors.brand.primary} />
+              <Text style={[styles.badgeText, { color: themeColors.brand.primary }]}>
+                Doctor Consultation Required
+              </Text>
+            </View>
+
+            <Text style={[styles.title, { color: themeColors.text.primary }]}>
+              Wait for call from Dr.
+            </Text>
+
+            <Text style={[styles.subtitle, { color: themeColors.text.secondary }]}>
+              Please wait for a call from our doctor within the next 5 minutes to confirm your prescription.
+            </Text>
+
+            <Card style={[styles.waitingCard, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
+              <ActivityIndicator size="small" color={themeColors.brand.primary} />
+              <Text style={[styles.waitingCardText, { color: themeColors.text.primary }]}>
+                Waiting for doctor's approval...
+              </Text>
+            </Card>
+
+            <Text style={[styles.info, { color: themeColors.text.muted }]}>
+              After confirmation, your order will automatically be sent to the nearest pharmacy.
+            </Text>
+          </View>
+        ) : isStoreAccepted && !hasBillAmount ? (
           // STATE 2: Store accepted, but store owner has not entered the price yet -> Show "Billing is on process"
           <View style={styles.stateWrapper}>
             <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: themeColors.brand.primary }]}>

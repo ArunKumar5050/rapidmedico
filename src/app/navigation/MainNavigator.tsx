@@ -36,8 +36,8 @@ export type MainStackParamList = {
   Referral: undefined;
   Coupons: undefined;
   CustomOrderRequest: { initialMedicineName?: string; initialImageUrl?: string | null; initialDescription?: string };
-  CustomOrderProcessing: { orderId: string };
-  CustomOrderPayment: { orderId: string };
+  CustomOrderProcessing: { orderId: string, isCustomOrder?: boolean };
+  CustomOrderPayment: { orderId: string, isCustomOrder?: boolean };
   PaymentMethods: { orderId: string, amount: number, isCustomOrder?: boolean };
   RazorpayCheckout: { orderId: string, amount: number, isCustomOrder?: boolean };
 };

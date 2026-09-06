@@ -74,7 +74,7 @@ export const CheckoutScreen = ({ navigation }: Props) => {
       const orderId = await createOrder(orderPayload);
       
       clearCart();
-      navigation.navigate('OrderTracking', { orderId });
+      navigation.replace('CustomOrderProcessing', { orderId, isCustomOrder: false });
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to place order. Please try again.');
