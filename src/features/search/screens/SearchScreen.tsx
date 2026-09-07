@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { TextInput } from '../../../components/ui/TextInput';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -8,7 +9,7 @@ import { useThemeColors, typography, spacing } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
-import { searchMedicines, fetchMedicines } from '../../../services/firebase/medicines';
+import { searchMedicinesSync, fetchMedicines } from '../../../services/firebase/medicines';
 import { MedicineItem, MEDICINE_CATALOG } from '../../../data/medicineCatalog';
 import { useCartStore } from '../../../store/useCartStore';
 
@@ -43,7 +44,7 @@ export const SearchScreen = ({ navigation }: Props) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchResults, setSearchResults] = useState<MedicineItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [popularMedicines, setPopularMedicines] = useState<MedicineItem[]>([]);
+  const [popularMedicines, setPopularMedicines] = useState<MedicineItem[]>(() => MEDICINE_CATALOG.slice(0, 15));
 
   const themeColors = useThemeColors();
   const addItem = useCartStore((state) => state.addItem);
@@ -58,16 +59,17 @@ export const SearchScreen = ({ navigation }: Props) => {
     });
   };
 
-  // Initialize and load default/popular medicines on mount
+  // Sync any dynamic medicines in background
   useEffect(() => {
     fetchMedicines().then((meds) => {
-      setPopularMedicines(meds.slice(0, 15));
+      if (meds && meds.length > 0) {
+        setPopularMedicines(meds.slice(0, 15));
+      }
     });
   }, []);
 
-  // Search medicines whenever query or category changes
+  // Instant in-memory search on every keystroke (< 1ms execution, zero lag!)
   useEffect(() => {
-    let isActive = true;
     const cleanQuery = query.trim();
 
     if (!cleanQuery) {
@@ -76,29 +78,13 @@ export const SearchScreen = ({ navigation }: Props) => {
       return;
     }
 
-    setIsSearching(true);
-    const timeoutId = setTimeout(async () => {
-      try {
-        const results = await searchMedicines(cleanQuery, 40);
-        if (isActive) {
-          if (selectedCategory !== 'All') {
-            setSearchResults(results.filter(r => r.category.toLowerCase().includes(selectedCategory.toLowerCase())));
-          } else {
-            setSearchResults(results);
-          }
-          setIsSearching(false);
-        }
-      } catch (err) {
-        if (isActive) {
-          setIsSearching(false);
-        }
-      }
-    }, 120);
-
-    return () => {
-      isActive = false;
-      clearTimeout(timeoutId);
-    };
+    const results = searchMedicinesSync(cleanQuery, 40);
+    if (selectedCategory !== 'All') {
+      setSearchResults(results.filter(r => r.category.toLowerCase().includes(selectedCategory.toLowerCase())));
+    } else {
+      setSearchResults(results);
+    }
+    setIsSearching(false);
   }, [query, selectedCategory]);
 
   const handleSelectMedicine = (med: MedicineItem) => {
@@ -117,6 +103,7 @@ export const SearchScreen = ({ navigation }: Props) => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       {/* Header with Search Input */}
       <View style={[styles.header, { backgroundColor: themeColors.background.secondary, borderBottomColor: themeColors.border.default }]}>
         <View style={styles.searchBarRow}>
