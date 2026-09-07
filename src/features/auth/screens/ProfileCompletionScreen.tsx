@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Button } from '../../../components/ui/Button';
 import { TextInput } from '../../../components/ui/TextInput';
 import { colors, typography, spacing } from '../../../theme';
@@ -19,7 +20,8 @@ export const ProfileCompletionScreen = ({ route }: Props) => {
   const setUser = useAuthStore((state) => state.setUser);
 
   const handleComplete = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       Alert.alert('Error', 'Please enter your name');
       return;
     }
@@ -30,18 +32,21 @@ export const ProfileCompletionScreen = ({ route }: Props) => {
       const userData = {
         id: uid,
         phone,
-        name: name.trim(),
+        name: trimmedName,
         createdAt: new Date().toISOString(),
       };
 
-      await saveDocument('users', userData);
-      
-      setUser({ uid, phone, name: name.trim() });
+      // 1. Instantly set user and authenticate to transition directly to HomeScreen
+      setUser({ uid, phone, name: trimmedName });
       setAuthenticated(true);
+
+      // 2. Fire and forget saving to Firestore in background
+      saveDocument('users', userData).catch((err) =>
+        console.log('Failed to save profile in background:', err)
+      );
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -51,6 +56,7 @@ export const ProfileCompletionScreen = ({ route }: Props) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       <View style={styles.content}>
         <Text style={styles.title}>Complete Profile</Text>
         <Text style={styles.subtitle}>Please enter your name to continue</Text>
@@ -60,7 +66,8 @@ export const ProfileCompletionScreen = ({ route }: Props) => {
           placeholder="Your full name"
           value={name}
           onChangeText={setName}
-          style={styles.input}
+          containerStyle={styles.inputContainer}
+          autoFocus
         />
 
         <Button 
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
     color: colors.light.text.secondary,
     marginBottom: spacing.xl,
   },
-  input: {
+  inputContainer: {
     marginBottom: spacing.xl,
   },
   btn: {

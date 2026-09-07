@@ -1,12 +1,17 @@
 {
   "expo": {
     "name": "RapidMedico",
-    "slug": "rapidmedico-customer",
+    "slug": "RapidMedico",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "rapidmedico",
     "userInterfaceStyle": "automatic",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#FFFFFF",
+      "translucent": false
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rapidmedico.customer",
@@ -56,11 +61,14 @@
       "googleMapsApiKey": "NOT_AVAILABLE",
       "razorpayTestKeyId": "rzp_test_Shgq35vj7SGKmI",
       "eas": {
-        "projectId": "1c4bb441-3e08-431e-9db2-568ce78a62e4"
+        "projectId": "04423e75-e10d-41ec-bb16-fdc0f07295f9"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/04423e75-e10d-41ec-bb16-fdc0f07295f9"
     }
   }
 }

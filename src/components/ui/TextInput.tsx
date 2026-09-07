@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput as RNTextInput, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
+import { View, TextInput as RNTextInput, Text, StyleSheet, TextInputProps, ViewStyle, Platform } from 'react-native';
 import { useThemeColors, typography, spacing } from '../../theme';
 
 interface Props extends TextInputProps {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   inputContainer: {
-    height: 48,
+    height: 52,
     borderWidth: 1,
     borderRadius: spacing.sm,
     flexDirection: 'row',
@@ -79,6 +79,9 @@ const styles = StyleSheet.create({
     flex: 1,
     ...typography.body,
     height: '100%',
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
   },
   multilineInput: {
     textAlignVertical: 'top',

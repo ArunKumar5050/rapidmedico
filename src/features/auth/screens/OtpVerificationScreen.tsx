@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TextInput, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { AuthService } from '../../../services/firebase/auth';
 import { getDocument } from '../../../services/firebase/firestoreHelpers';
 import { useAuthStore } from '../../../store/auth';
@@ -33,16 +34,32 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
     try {
       const user = await AuthService.verifyOtp(phone, otp);
       
-      // Check if user profile already exists in Firestore
-      const userData = await getDocument('users', user.uid) as { name?: string } | null;
-      
-      if (userData && userData.name) {
-        setUser({ uid: user.uid, phone: user.phone || phone, name: userData.name });
+      // 1. Check local storage first (instant — no network needed)
+      const existingUser = useAuthStore.getState().user;
+      if (existingUser && existingUser.uid === user.uid && existingUser.name) {
+        setUser({ uid: user.uid, phone: user.phone || phone, name: existingUser.name });
         setAuthenticated(true);
-      } else {
-        // Navigate to Profile completion so they can enter their name
-        navigation.navigate('ProfileCompletion', { phone });
+        return;
       }
+      
+      // 2. Fetch from Firestore (quick 1.5s check for existing account)
+      try {
+        const firestorePromise = getDocument('users', user.uid);
+        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
+        const userData: any = await Promise.race([firestorePromise, timeoutPromise]);
+
+        if (userData && userData.name) {
+          // Existing account found in database — direct login!
+          setUser({ uid: user.uid, phone: user.phone || phone, name: userData.name });
+          setAuthenticated(true);
+          return;
+        }
+      } catch (err) {
+        console.log('Notice: Firestore check fallback:', err);
+      }
+
+      // 3. New user — navigate to ProfileCompletion
+      navigation.navigate('ProfileCompletion', { phone });
     } catch (error: any) {
       console.error(error);
       Alert.alert('Verification Failed', error.message || 'Verification failed. Use OTP: 123456');
@@ -67,6 +84,7 @@ export const OtpVerificationScreen = ({ route, navigation }: Props) => {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       <View style={styles.content}>
         <Text style={styles.title}>Verify your number</Text>
         <Text style={styles.subtitle}>Enter the 6-digit code sent to {phone}</Text>

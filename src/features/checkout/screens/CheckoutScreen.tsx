@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { useThemeColors, typography, spacing } from '../../../theme';
@@ -42,14 +43,28 @@ export const CheckoutScreen = ({ navigation }: Props) => {
     try {
       let finalPrescriptionUrl = prescriptionUrl;
       if (prescriptionUrl && prescriptionUrl.startsWith('file://')) {
-        finalPrescriptionUrl = await CloudinaryService.uploadImage(prescriptionUrl);
+        try {
+          finalPrescriptionUrl = await Promise.race([
+            CloudinaryService.uploadImage(prescriptionUrl),
+            new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Image upload timeout')), 8000))
+          ]);
+        } catch (imgErr) {
+          console.warn('[Checkout] Prescription image upload notice:', imgErr);
+        }
       }
 
       const updatedCartItems = await Promise.all(
         cartItems.map(async (item) => {
           if (item.isCustom && item.imageUrl && item.imageUrl.startsWith('file://')) {
-            const uploadedUrl = await CloudinaryService.uploadImage(item.imageUrl);
-            return { ...item, imageUrl: uploadedUrl };
+            try {
+              const uploadedUrl = await Promise.race([
+                CloudinaryService.uploadImage(item.imageUrl),
+                new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Image upload timeout')), 8000))
+              ]);
+              return { ...item, imageUrl: uploadedUrl };
+            } catch (err) {
+              return item;
+            }
           }
           return item;
         })
@@ -103,6 +118,7 @@ export const CheckoutScreen = ({ navigation }: Props) => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       <View style={[styles.header, { backgroundColor: themeColors.background.secondary, borderBottomColor: themeColors.border.default }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />

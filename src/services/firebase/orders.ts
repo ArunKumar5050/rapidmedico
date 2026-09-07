@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, onSnapshot, serverTimestamp, query, where, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, onSnapshot, serverTimestamp, query, where, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from './firestore';
 import { CartItem } from '../../store/useCartStore';
 
@@ -51,22 +51,28 @@ export const generateDeliveryOtp = (): string => {
 export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & { status?: OrderStatus }) => {
   try {
     const ordersRef = collection(db, 'orders');
+    const docRef = doc(ordersRef); // Instant client-side ID generation
     const newOrder = {
+      id: docRef.id,
       ...orderData,
       status: orderData.status || 'placed',
       paymentStatus: orderData.paymentMethod === 'COD' ? 'COD' : 'PENDING',
       createdAt: serverTimestamp(),
     };
-    const docRef = await addDoc(ordersRef, newOrder);
 
-    // Trigger push notification to stores
+    // Race against a 3.5s timeout so UI never hangs if network has socket delays
+    const savePromise = setDoc(docRef, newOrder);
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
+    await Promise.race([savePromise, timeoutPromise]);
+
+    // Trigger push notification to stores in background
     import('../notifications').then(({ sendPushNotificationToStores }) => {
       sendPushNotificationToStores(
         'New Medicine Order!', 
         `A customer placed an order for ₹${orderData.totalAmount}.`,
         { orderId: docRef.id, type: 'regular' }
-      );
-    });
+      ).catch(() => {});
+    }).catch(() => {});
 
     return docRef.id;
   } catch (error) {

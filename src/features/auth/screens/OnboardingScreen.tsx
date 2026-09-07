@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Button } from '../../../components/ui/Button';
 import { colors, typography, spacing } from '../../../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +11,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 export const OnboardingScreen = ({ navigation }: Props) => {
   return (
     <View style={styles.container}>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       <View style={styles.content}>
         <Text style={styles.title}>RapidMedico</Text>
         <Text style={styles.subtitle}>Your trusted pharmacy, delivered fast.</Text>

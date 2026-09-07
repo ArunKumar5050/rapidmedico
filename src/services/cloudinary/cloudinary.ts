@@ -41,7 +41,13 @@ export class CloudinaryService {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
+        xhr.timeout = 10000; // 10 seconds timeout
         
+        xhr.ontimeout = () => {
+          console.warn('[CloudinaryService] Image upload timed out after 10s');
+          reject(new Error('Image upload timed out'));
+        };
+
         if (onProgress) {
           xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {

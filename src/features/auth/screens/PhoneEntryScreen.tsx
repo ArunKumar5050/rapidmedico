@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Text, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PhoneEntrySchema } from '../../../types/schemas';
@@ -60,6 +61,7 @@ export const PhoneEntryScreen = ({ navigation }: Props) => {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar style="dark" backgroundColor="#FFFFFF" translucent={false} />
       <View style={styles.content}>
         <Text style={styles.title}>Welcome to RapidMedico</Text>
         <Text style={styles.subtitle}>Enter your phone number to continue</Text>

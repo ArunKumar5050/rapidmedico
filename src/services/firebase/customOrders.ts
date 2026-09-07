@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, updateDoc, onSnapshot, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, updateDoc, onSnapshot, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
 import { db } from './firestore';
 
 export interface CustomOrder {
@@ -51,21 +51,26 @@ export const generateDeliveryOtp = (): string => {
 export const createCustomOrder = async (orderData: Omit<CustomOrder, 'id' | 'createdAt' | 'status'>) => {
   try {
     const ordersRef = collection(db, 'customOrders');
+    const docRef = doc(ordersRef); // Instant client-side ID generation
     const newOrder = {
+      id: docRef.id,
       ...orderData,
       status: 'processing',
       createdAt: serverTimestamp(),
     };
-    const docRef = await addDoc(ordersRef, newOrder);
+
+    const savePromise = setDoc(docRef, newOrder);
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
+    await Promise.race([savePromise, timeoutPromise]);
     
-    // Trigger push notification to stores
+    // Trigger push notification to stores in background
     import('../notifications').then(({ sendPushNotificationToStores }) => {
       sendPushNotificationToStores(
         'New Prescription Order!', 
         `${orderData.userName} requested a new order.`,
         { orderId: docRef.id, type: 'custom' }
-      );
-    });
+      ).catch(() => {});
+    }).catch(() => {});
 
     return docRef.id;
   } catch (error) {
