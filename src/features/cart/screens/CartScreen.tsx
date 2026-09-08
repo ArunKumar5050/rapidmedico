@@ -9,6 +9,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import * as ImagePicker from 'expo-image-picker';
 import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
+import { getMedicineSuggestions } from '../../../services/firebase/medicines';
+import { MedicineItem } from '../../../data/medicineCatalog';
 type Props = NativeStackScreenProps<MainStackParamList>;
 
 export const CartScreen = ({ navigation }: Props) => {
@@ -17,6 +19,9 @@ export const CartScreen = ({ navigation }: Props) => {
 
   const [customMedName, setCustomMedName] = useState('');
   const [customMedImage, setCustomMedImage] = useState<string | null>(null);
+  
+  const [suggestions, setSuggestions] = useState<MedicineItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const [isUploadingCustom, setIsUploadingCustom] = useState(false);
   const [isUploadingRx, setIsUploadingRx] = useState(false);
@@ -40,6 +45,29 @@ export const CartScreen = ({ navigation }: Props) => {
         setIsUploadingCustom(false);
       }
     }
+  };
+
+  const handleCustomMedChange = async (text: string) => {
+    setCustomMedName(text);
+    const clean = text.trim();
+    if (clean.length >= 2) {
+      try {
+        const matches = await getMedicineSuggestions(clean, 6);
+        setSuggestions(matches);
+        setShowSuggestions(true);
+      } catch (e) {
+        setSuggestions([]);
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (name: string) => {
+    setCustomMedName(name);
+    setShowSuggestions(false);
+    setSuggestions([]);
   };
 
   const handleAddCustomMed = () => {
@@ -136,14 +164,32 @@ export const CartScreen = ({ navigation }: Props) => {
               </Text>
               
               <View style={styles.manualInputRow}>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, position: 'relative', zIndex: 10 }}>
                   <TextInput
                     label="Medicine Name"
                     placeholder="Enter medicine name..."
                     value={customMedName}
-                    onChangeText={setCustomMedName}
+                    onChangeText={handleCustomMedChange}
                     containerStyle={{ marginBottom: 0 }}
                   />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <View style={[styles.suggestionsDropdown, { backgroundColor: themeColors.background.secondary, borderColor: themeColors.border.default }]}>
+                      <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                        {suggestions.map((sug) => (
+                          <TouchableOpacity
+                            key={sug.id}
+                            style={[styles.suggestionItem, { borderBottomColor: themeColors.border.default }]}
+                            onPress={() => handleSelectSuggestion(sug.name)}
+                          >
+                            <Ionicons name="medical" size={16} color={themeColors.brand.primary} style={{ marginRight: 8 }} />
+                            <Text style={[styles.suggestionName, { color: themeColors.text.primary }]}>
+                              {sug.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
                 <TouchableOpacity 
                   onPress={pickCustomMedImage}
@@ -435,6 +481,31 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
     borderTopWidth: 1,
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 65,
+    left: 0,
+    right: 0,
+    borderWidth: 1,
+    borderRadius: spacing.sm,
+    maxHeight: 200,
+    zIndex: 100,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+  },
+  suggestionName: {
+    ...typography.body,
+    flex: 1,
   },
 });
 

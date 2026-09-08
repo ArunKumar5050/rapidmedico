@@ -60,10 +60,7 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt'> & {
       createdAt: serverTimestamp(),
     };
 
-    // Race against a 3.5s timeout so UI never hangs if network has socket delays
-    const savePromise = setDoc(docRef, newOrder);
-    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
-    await Promise.race([savePromise, timeoutPromise]);
+    setDoc(docRef, newOrder).catch(console.error);
 
     // Trigger push notification to stores in background
     import('../notifications').then(({ sendPushNotificationToStores }) => {

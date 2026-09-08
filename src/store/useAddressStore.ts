@@ -25,80 +25,75 @@ interface AddressStore {
   initSync: () => () => void;
 }
 
-const COLLECTION_PATH = 'users/demo_user_123/addresses';
+import { useAuthStore } from './auth';
 
-const initialAddresses: Address[] = [
-  {
-    id: '1',
-    title: 'Home',
-    text: 'Flat 4B, Sunflower Apts, 12th Main, Koramangala, Bangalore - 560034',
-    receiver: 'Arun Kumar (+91 98765 43210)',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    title: 'Work',
-    text: 'Tower B, 5th Floor, Tech Park, Indiranagar, Bangalore - 560038',
-    receiver: 'Arun Kumar (+91 98765 43210)',
-    isDefault: false,
-  },
-];
+const getCollectionPath = () => {
+  const user = useAuthStore.getState().user;
+  const userId = user?.uid || 'demo_user_123';
+  return `users/${userId}/addresses`;
+};
+
+const initialAddresses: Address[] = [];
 
 export const useAddressStore = create<AddressStore>((set, get) => ({
   addresses: initialAddresses,
 
   addAddress: (address: Address) => {
     const state = get();
+    const path = getCollectionPath();
     let updatedAddresses = [...state.addresses];
     if (address.isDefault) {
       updatedAddresses = updatedAddresses.map((a) => {
         const resetAddr = { ...a, isDefault: false };
-        saveDocument(COLLECTION_PATH, resetAddr);
+        saveDocument(path, resetAddr);
         return resetAddr;
       });
     }
     if (updatedAddresses.length === 0) {
       address.isDefault = true;
     }
-    saveDocument(COLLECTION_PATH, address);
+    saveDocument(path, address);
     set({ addresses: [...updatedAddresses, address] });
   },
 
   updateAddress: (id: string, address: Address) => {
     const state = get();
+    const path = getCollectionPath();
     let updatedAddresses = [...state.addresses];
     
     if (address.isDefault) {
       updatedAddresses = updatedAddresses.map((a) => {
         if (a.id === id) return a;
         const resetAddr = { ...a, isDefault: false };
-        saveDocument(COLLECTION_PATH, resetAddr);
+        saveDocument(path, resetAddr);
         return resetAddr;
       });
     }
     
     updatedAddresses = updatedAddresses.map((a) => (a.id === id ? address : a));
-    saveDocument(COLLECTION_PATH, address);
+    saveDocument(path, address);
     set({ addresses: updatedAddresses });
   },
 
   deleteAddress: (id: string) => {
     const state = get();
+    const path = getCollectionPath();
     const updatedAddresses = state.addresses.filter(a => a.id !== id);
     if (updatedAddresses.length > 0 && !updatedAddresses.find(a => a.isDefault)) {
       updatedAddresses[0].isDefault = true;
-      saveDocument(COLLECTION_PATH, updatedAddresses[0]);
+      saveDocument(path, updatedAddresses[0]);
     }
-    deleteDocument(COLLECTION_PATH, id);
+    deleteDocument(path, id);
     set({ addresses: updatedAddresses });
   },
 
   setDefaultAddress: (id: string) => {
     set((state) => {
+      const path = getCollectionPath();
       const updated = state.addresses.map((a) => {
         const isDef = a.id === id;
         const updatedAddr = { ...a, isDefault: isDef };
-        saveDocument(COLLECTION_PATH, updatedAddr);
+        saveDocument(path, updatedAddr);
         return updatedAddr;
       });
       return { addresses: updated };
@@ -111,17 +106,10 @@ export const useAddressStore = create<AddressStore>((set, get) => ({
   },
 
   initSync: () => {
-    // Sync initial mock items to Firestore once if needed
-    initialAddresses.forEach((addr) => saveDocument(COLLECTION_PATH, addr));
-
-    const unsubscribe = syncCollection<Address>(COLLECTION_PATH, (remoteAddresses) => {
-      if (remoteAddresses.length > 0) {
-        set({ addresses: remoteAddresses });
-      }
+    const path = getCollectionPath();
+    const unsubscribe = syncCollection<Address>(path, (remoteAddresses) => {
+      set({ addresses: remoteAddresses });
     });
     return unsubscribe;
   },
 }));
-
-// Initialize sync immediately
-useAddressStore.getState().initSync();

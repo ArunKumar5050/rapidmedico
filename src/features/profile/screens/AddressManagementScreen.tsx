@@ -288,14 +288,14 @@ export const AddressManagementScreen = ({ navigation }: Props) => {
 
               <TextInput
                 label="Receiver Name"
-                placeholder="e.g. Arun Kumar"
+                placeholder="Your Name"
                 value={receiverName}
                 onChangeText={setReceiverName}
               />
 
               <TextInput
                 label="Receiver Phone Number"
-                placeholder="e.g. 9876543210"
+                placeholder=""
                 value={receiverPhone}
                 onChangeText={setReceiverPhone}
                 keyboardType="phone-pad"

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
+import { useCartStore } from '../../../store/useCartStore';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'CustomOrderRequest'>;
 
@@ -22,8 +23,8 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
   const { initialMedicineName = '', initialImageUrl = null, initialDescription = '' } = route.params || {};
   const themeColors = useThemeColors();
   const { user } = useAuthStore();
+  const { addItem } = useCartStore();
   
-  const [step, setStep] = useState(initialImageUrl ? 2 : 1);
   const [medicines, setMedicines] = useState<{name: string, image: string | null}[]>([
     { name: initialMedicineName || initialDescription, image: initialImageUrl }
   ]);
@@ -60,7 +61,6 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
         }
         return [...prev, { name: initialMedicineName, image: null }];
       });
-      setStep(1);
     }
   }, [initialMedicineName]);
 
@@ -134,152 +134,52 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
     }
   };
 
-  const handleGetLocation = async () => {
-    setIsFetchingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Permission to access location was denied.');
-        setIsFetchingLocation(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const { latitude, longitude } = location.coords;
-      setCoordinates({ latitude, longitude });
-
-      const geocode = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude
-      });
-
-      if (geocode && geocode.length > 0) {
-        const place = geocode[0];
-        const addressParts = [place.name, place.street, place.subregion, place.city, place.postalCode].filter(Boolean);
-        setLocationAddress(addressParts.join(', '));
-      } else {
-        setLocationAddress(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to fetch current location.');
-    } finally {
-      setIsFetchingLocation(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (step === 1) {
-      const valid = medicines.some(m => m.name.trim().length > 0 || m.image);
-      if (!valid) {
-        Alert.alert('Error', 'Please enter at least one medicine or upload an image.');
-        return;
-      }
-    }
-    if (step === 2) {
-      if (!userName.trim() || !mobile.trim()) {
-        Alert.alert('Error', 'Please enter your name and mobile number.');
-        return;
-      }
-    }
-    setActiveSuggestionRow(null);
-    setSuggestions([]);
-    setStep(s => Math.min(3, s + 1));
-  };
-
-  const handleBack = () => {
-    setActiveSuggestionRow(null);
-    setSuggestions([]);
-    if (step > 1) {
-      setStep(s => s - 1);
-    } else {
-      navigation.goBack();
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleAddItemsToCart = async () => {
     const validMedicines = medicines.filter(m => m.name.trim().length > 0 || m.image);
-    const finalAddress = `Flat/Floor: ${flatDetails.trim() || 'N/A'}, Location: ${locationAddress.trim()}`;
-
-    if (!locationAddress.trim()) {
-      Alert.alert("Error", "Please provide a delivery location.");
-      return;
-    }
-
-    if (!user) {
-      Alert.alert("Error", "You must be logged in to submit a request.");
+    
+    if (validMedicines.length === 0) {
+      Alert.alert('Error', 'Please enter at least one medicine or upload an image.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const uploadedImageUrls: string[] = [];
-      const processedMeds = [];
-
-      for (const m of medicines) {
-        if (m.name.trim().length > 0 || m.image) {
-          if (m.image) {
-            let url = m.image;
-            if (url.startsWith('file://')) {
-               url = await CloudinaryService.uploadImage(url);
-            }
-            uploadedImageUrls.push(url);
-          }
-          processedMeds.push(m);
+      for (let i = 0; i < validMedicines.length; i++) {
+        const m = validMedicines[i];
+        let url = m.image;
+        if (url && url.startsWith('file://')) {
+          url = await CloudinaryService.uploadImage(url);
         }
+        
+        addItem({
+          id: `custom_${Date.now()}_${i}`,
+          name: m.name || 'Image Uploaded',
+          qty: 1,
+          unitPrice: 0,
+          rxRequired: false,
+          isCustom: true,
+          imageUrl: url
+        });
       }
-
-      const orderPayload: any = {
-        medicines: processedMeds.map(m => m.name || 'Image Uploaded'),
-        imageUrls: uploadedImageUrls,
-        userName,
-        mobile,
-        address: finalAddress,
-        userId: user.uid,
-      };
-
-      // Save exact GPS coordinates to database
-      if (coordinates) {
-        orderPayload.latitude = coordinates.latitude;
-        orderPayload.longitude = coordinates.longitude;
-        orderPayload.customerLat = coordinates.latitude;
-        orderPayload.customerLng = coordinates.longitude;
-        orderPayload.userLat = coordinates.latitude;
-        orderPayload.userLng = coordinates.longitude;
-        orderPayload.location = {
-          lat: coordinates.latitude,
-          lng: coordinates.longitude,
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude,
-          timestamp: Date.now()
-        };
-        orderPayload.coordinates = {
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude
-        };
-      }
-
-      const orderId = await createCustomOrder(orderPayload);
-      navigation.replace('CustomOrderProcessing', { orderId });
+      
+      navigation.replace('Cart');
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to submit request. Please try again.");
+      Alert.alert('Error', 'Failed to add items to cart.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleBack = () => {
+    setActiveSuggestionRow(null);
+    setSuggestions([]);
+    navigation.goBack();
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background.primary }]}>
-      <Header title={`Request Medicine (Step ${step}/3)`} showBack onBack={handleBack} />
-      
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { width: `${(step / 3) * 100}%`, backgroundColor: themeColors.brand.primary }]} />
-      </View>
+      <Header title="Request Medicine" showBack onBack={handleBack} />
 
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
@@ -291,7 +191,6 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {step === 1 && (
             <View style={styles.section}>
               <Text style={[styles.subtitle, { color: themeColors.text.secondary }]}>
                 Can't find your medicine? Start typing for instant suggestions from our 750+ database, or upload a photo.
@@ -406,91 +305,17 @@ export const CustomOrderRequestScreen = ({ navigation, route }: Props) => {
                 <Text style={[styles.addMoreText, { color: themeColors.brand.primary }]}>Add Another Medicine</Text>
               </TouchableOpacity>
             </View>
-          )}
-
-          {step === 2 && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>Contact Info</Text>
-              <TextInput
-                label="Your Name"
-                placeholder="Enter your full name"
-                value={userName}
-                onChangeText={setUserName}
-                containerStyle={styles.inputContainer}
-              />
-              <TextInput
-                label="Mobile Number"
-                placeholder="Enter 10-digit mobile number"
-                value={mobile}
-                onChangeText={setMobile}
-                keyboardType="phone-pad"
-                containerStyle={styles.inputContainer}
-              />
-            </View>
-          )}
-
-          {step === 3 && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>Delivery Address</Text>
-              
-              <TouchableOpacity 
-                style={[styles.locationBtn, { borderColor: themeColors.brand.primary, backgroundColor: themeColors.brand.primary + '12' }]} 
-                onPress={handleGetLocation}
-                disabled={isFetchingLocation}
-              >
-                {isFetchingLocation ? (
-                  <ActivityIndicator size="small" color={themeColors.brand.primary} />
-                ) : (
-                  <Ionicons name="navigate" size={18} color={themeColors.brand.primary} />
-                )}
-                <Text style={[styles.locationBtnText, { color: themeColors.brand.primary }]}>
-                  {isFetchingLocation ? 'Fetching GPS location...' : 'Use Current Location'}
-                </Text>
-              </TouchableOpacity>
-
-              {coordinates && (
-                <View style={[styles.gpsBadge, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: themeColors.status.success }]}>
-                  <Ionicons name="checkmark-circle" size={16} color={themeColors.status.success} />
-                  <Text style={[styles.gpsBadgeText, { color: themeColors.status.success }]}>
-                    GPS coordinates pinned ({coordinates.latitude.toFixed(4)}, {coordinates.longitude.toFixed(4)})
-                  </Text>
-                </View>
-              )}
-
-              <TextInput
-                label="Location / Area / Landmark"
-                placeholder="Area, Street, Landmark"
-                value={locationAddress}
-                onChangeText={setLocationAddress}
-                multiline
-                numberOfLines={2}
-                containerStyle={styles.inputContainer}
-              />
-
-              <TextInput
-                label="Flat / House / Floor (Optional)"
-                placeholder="Flat No, House Name, Floor No"
-                value={flatDetails}
-                onChangeText={setFlatDetails}
-                containerStyle={styles.inputContainer}
-              />
-            </View>
-          )}
 
           <View style={{ height: 40 }} />
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: themeColors.border.default, backgroundColor: themeColors.background.primary }]}>
-          {step < 3 ? (
-            <Button title="Continue" onPress={handleNext} style={styles.submitBtn} />
-          ) : (
-            <Button
-              title="Submit Custom Request"
-              onPress={handleSubmit}
-              loading={isLoading}
-              style={styles.submitBtn}
-            />
-          )}
+          <Button
+            title="Add to Cart"
+            onPress={handleAddItemsToCart}
+            loading={isLoading}
+            style={styles.submitBtn}
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

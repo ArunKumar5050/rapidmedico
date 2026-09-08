@@ -17,14 +17,12 @@ import { CloudinaryService } from '../../../services/cloudinary/cloudinary';
 type Props = NativeStackScreenProps<MainStackParamList, 'Checkout'>;
 
 export const CheckoutScreen = ({ navigation }: Props) => {
-  const [isEmergency, setIsEmergency] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
   const themeColors = useThemeColors();
   const { cartItems, clearCart, prescriptionUrl, prescriptionDescription, prescriptionOption } = useCartStore();
   const { user } = useAuthStore();
-  const { getDefaultAddress } = useAddressStore();
-  const activeAddress = getDefaultAddress();
+  const activeAddress = useAddressStore((state) => state.addresses.find((a) => a.isDefault) || state.addresses[0]);
 
   const totalAmount = cartItems.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
 
@@ -36,6 +34,11 @@ export const CheckoutScreen = ({ navigation }: Props) => {
 
     if (cartItems.length === 0 && !prescriptionUrl) {
       Alert.alert('Error', 'Your cart is empty and no prescription is attached.');
+      return;
+    }
+
+    if (!activeAddress) {
+      Alert.alert('Error', 'Please add a delivery address to place an order.');
       return;
     }
 
@@ -74,8 +77,7 @@ export const CheckoutScreen = ({ navigation }: Props) => {
         userId: user.uid,
         items: updatedCartItems,
         totalAmount,
-        isEmergency,
-        address: activeAddress?.text || '123 Main St, Apartment 4B, Koramangala, Bangalore',
+        address: activeAddress.text,
         ...(finalPrescriptionUrl && { prescriptionUrl: finalPrescriptionUrl }),
         ...(prescriptionDescription && { notes: prescriptionDescription }),
         ...(prescriptionOption && { prescriptionOption }),
@@ -150,23 +152,6 @@ export const CheckoutScreen = ({ navigation }: Props) => {
           </View>
         </Card>
 
-        {/* Priority Emergency Toggle */}
-        <Card style={[styles.emergencyCard, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#EF4444' }]}>
-          <View style={styles.emergencyRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.emergencyTitle}>🚨 Emergency Priority Delivery</Text>
-              <Text style={[styles.emergencySub, { color: themeColors.text.secondary }]}>Prioritize order dispatch from nearest available pharmacy</Text>
-            </View>
-            <TouchableOpacity 
-              style={[styles.toggleBtn, isEmergency && styles.toggleActive]}
-              onPress={() => setIsEmergency(!isEmergency)}
-            >
-              <View style={[styles.toggleCircle, isEmergency && styles.toggleCircleActive]} />
-            </TouchableOpacity>
-          </View>
-        </Card>
-
-
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: themeColors.background.secondary, borderTopColor: themeColors.border.default }]}>
@@ -208,20 +193,6 @@ const styles = StyleSheet.create({
   addressRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   addressName: { ...typography.bodyStrong },
   addressText: { ...typography.caption, maxWidth: 260 },
-  emergencyCard: { marginBottom: spacing.lg },
-  emergencyRow: { flexDirection: 'row', alignItems: 'center' },
-  emergencyTitle: { ...typography.bodyStrong, color: '#EF4444' },
-  emergencySub: { ...typography.caption, marginTop: 2 },
-  toggleBtn: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#374151',
-    padding: 2,
-  },
-  toggleActive: { backgroundColor: '#EF4444' },
-  toggleCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF' },
-  toggleCircleActive: { alignSelf: 'flex-end' },
   payOption: {
     flexDirection: 'row',
     alignItems: 'center',

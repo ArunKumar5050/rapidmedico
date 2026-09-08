@@ -8,6 +8,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../../app/navigation/MainNavigator';
 import { subscribeToOrder, Order } from '../../../services/firebase/orders';
 import { subscribeToCustomOrder, CustomOrder } from '../../../services/firebase/customOrders';
+import { db } from '../../../services/firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'OrderTracking'>;
@@ -18,6 +20,7 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
   
   const [order, setOrder] = useState<Order | CustomOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchedPartnerPhone, setFetchedPartnerPhone] = useState<string>('');
 
   useEffect(() => {
     if (!orderId) {
@@ -45,6 +48,23 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
       return () => unsubscribe();
     }
   }, [orderId, isCustomOrder]);
+
+  useEffect(() => {
+    if (order && (order as any).deliveryPartnerId) {
+      const fetchPartner = async () => {
+        try {
+          const partnerDoc = await getDoc(doc(db, 'delivery_partners', (order as any).deliveryPartnerId));
+          if (partnerDoc.exists()) {
+            const pData = partnerDoc.data();
+            if (pData.phone) setFetchedPartnerPhone(pData.phone);
+          }
+        } catch (e) {
+          console.log('Error fetching partner phone:', e);
+        }
+      };
+      fetchPartner();
+    }
+  }, [order]);
 
   if (isLoading || !order) {
     return (
@@ -115,12 +135,13 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
   // Real database values only - NO fake hardcoded defaults
   const realDeliveryOtp = (order as any)?.deliveryOtp || (order as any)?.otp || null;
   const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedico Delivery Partner';
-  const realRiderPhone = (order as any)?.deliveryPartnerPhone || '';
+  const realRiderPhone = fetchedPartnerPhone || (order as any)?.deliveryPartnerPhone || '';
   const realRiderVehicle = (order as any)?.deliveryPartnerVehicle || '';
 
   const handleCallRider = () => {
     if (realRiderPhone && realRiderPhone.trim().length > 0) {
-      Linking.openURL(`tel:${realRiderPhone.replace(/\D/g, '')}`);
+      const cleanPhone = realRiderPhone.replace(/[^\d+]/g, '');
+      Linking.openURL(`tel:${cleanPhone}`);
     } else {
       Alert.alert('Delivery Partner', 'Phone number not available yet.');
     }
@@ -300,12 +321,13 @@ export const OrderTrackingScreen = ({ route, navigation }: Props) => {
                 {realRiderVehicle ? (
                   <Text style={[styles.riderVehicleText, { color: themeColors.text.muted }]}>🛵 {realRiderVehicle}</Text>
                 ) : null}
+                {realRiderPhone ? (
+                  <Text style={[{ fontSize: 13, marginTop: 2, color: themeColors.text.muted }]}>📞 {realRiderPhone}</Text>
+                ) : null}
               </View>
-              {realRiderPhone ? (
-                <TouchableOpacity style={[styles.callBtn, { backgroundColor: themeColors.status.success }]} onPress={handleCallRider}>
-                  <Ionicons name="call" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity style={[styles.callBtn, { backgroundColor: themeColors.status.success }]} onPress={handleCallRider}>
+                <Ionicons name="call" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 

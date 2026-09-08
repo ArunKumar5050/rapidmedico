@@ -38,6 +38,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
   const [storeCoords, setStoreCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchedPartnerPhone, setFetchedPartnerPhone] = useState<string>('');
 
   const defaultAddr = useAddressStore((state) => state.getDefaultAddress());
 
@@ -105,7 +106,25 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
     fetchStore();
   }, [(order as any)?.storeId]);
 
-  // 3. Subscribe in real-time to delivery partner's live GPS stream from 'delivery_partners' collection
+  // 3. Fetch real delivery partner phone if deliveryPartnerId exists
+  useEffect(() => {
+    if (order && (order as any).deliveryPartnerId) {
+      const fetchPartner = async () => {
+        try {
+          const partnerDoc = await getDoc(doc(db, 'delivery_partners', (order as any).deliveryPartnerId));
+          if (partnerDoc.exists()) {
+            const pData = partnerDoc.data();
+            if (pData.phone) setFetchedPartnerPhone(pData.phone);
+          }
+        } catch (e) {
+          console.log('Error fetching partner phone:', e);
+        }
+      };
+      fetchPartner();
+    }
+  }, [order]);
+
+  // 4. Subscribe in real-time to delivery partner's live GPS stream from 'delivery_partners' collection
   useEffect(() => {
     const partnerId = (order as any)?.deliveryPartnerId;
     if (!partnerId) return;
@@ -184,7 +203,7 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
 
   // Real database values only
   const realRiderName = (order as any)?.deliveryPartnerName || 'RapidMedico Delivery Partner';
-  const realRiderPhone = (order as any)?.deliveryPartnerPhone || '';
+  const realRiderPhone = fetchedPartnerPhone || (order as any)?.deliveryPartnerPhone || '';
   const realRiderVehicle = (order as any)?.deliveryPartnerVehicle || '';
   const realDeliveryOtp = (order as any)?.deliveryOtp || (order as any)?.otp || null;
 
@@ -210,7 +229,8 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
 
   const handleCallRider = () => {
     if (realRiderPhone && realRiderPhone.trim().length > 0) {
-      Linking.openURL(`tel:${realRiderPhone.replace(/\D/g, '')}`);
+      const cleanPhone = realRiderPhone.replace(/[^\d+]/g, '');
+      Linking.openURL(`tel:${cleanPhone}`);
     } else {
       Alert.alert('Delivery Partner', 'Phone number not available yet.');
     }
@@ -306,8 +326,10 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
               });
-              storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map)
-                .bindPopup('<b>RapidMedico Partner Store</b>');
+              storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon });
+              if (!${isOutOfDelivery}) {
+                storeMarker.addTo(map).bindPopup('<b>RapidMedico Partner Store</b>');
+              }
 
               // 2. Customer Marker from database coordinates
               var customerIcon = L.divIcon({
@@ -330,7 +352,10 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
                 .bindPopup('<b>Delivery Boy (Live GPS)</b>');
 
               // 4. Route Line
-              var routeCoords = [
+              var routeCoords = ${isOutOfDelivery} ? [
+                [${riderLat}, ${riderLng}],
+                [${customerLat}, ${customerLng}]
+              ] : [
                 [${storeLat}, ${storeLng}],
                 [${riderLat}, ${riderLng}],
                 [${customerLat}, ${customerLng}]
@@ -343,16 +368,28 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
                 dashArray: '6, 8'
               }).addTo(map);
 
-              var group = new L.featureGroup([customerMarker, riderMarker, storeMarker]);
-              map.fitBounds(group.getBounds().pad(0.25));
+              var initialGroup = ${isOutOfDelivery} 
+                ? new L.featureGroup([customerMarker, riderMarker])
+                : new L.featureGroup([customerMarker, riderMarker, storeMarker]);
+              map.fitBounds(initialGroup.getBounds().pad(0.25));
 
               function updateMap(payload) {
                 if (payload.customer && payload.customer.lat && payload.customer.lng) {
                   customerMarker.setLatLng([payload.customer.lat, payload.customer.lng]);
                 }
-                if (payload.store && payload.store.lat && payload.store.lng) {
-                  storeMarker.setLatLng([payload.store.lat, payload.store.lng]);
+                if (payload.isOutOfDelivery) {
+                  if (map.hasLayer(storeMarker)) {
+                    map.removeLayer(storeMarker);
+                  }
+                } else {
+                  if (payload.store && payload.store.lat && payload.store.lng) {
+                    storeMarker.setLatLng([payload.store.lat, payload.store.lng]);
+                    if (!map.hasLayer(storeMarker)) {
+                      storeMarker.addTo(map).bindPopup('<b>RapidMedico Partner Store</b>');
+                    }
+                  }
                 }
+
                 if (payload.rider && payload.rider.lat && payload.rider.lng) {
                   riderMarker.setLatLng([payload.rider.lat, payload.rider.lng]);
                   if (!map.hasLayer(riderMarker)) riderMarker.addTo(map);
@@ -362,14 +399,20 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
                 var currentRider = riderMarker.getLatLng();
                 var currentCust = customerMarker.getLatLng();
 
-                var newPath = [
+                var newPath = payload.isOutOfDelivery ? [
+                  [currentRider.lat, currentRider.lng],
+                  [currentCust.lat, currentCust.lng]
+                ] : [
                   [currentStore.lat, currentStore.lng],
                   [currentRider.lat, currentRider.lng],
                   [currentCust.lat, currentCust.lng]
                 ];
                 routeLine.setLatLngs(newPath);
 
-                var updateGroup = new L.featureGroup([customerMarker, riderMarker, storeMarker]);
+                var activeMarkers = payload.isOutOfDelivery 
+                  ? [customerMarker, riderMarker] 
+                  : [customerMarker, riderMarker, storeMarker];
+                var updateGroup = new L.featureGroup(activeMarkers);
                 map.fitBounds(updateGroup.getBounds().pad(0.25));
               }
 
@@ -483,13 +526,14 @@ export const LiveTrackingScreen = ({ route, navigation }: Props) => {
               {realRiderVehicle ? (
                 <Text style={[styles.vehicleText, { color: themeColors.text.muted }]}>🛵 {realRiderVehicle}</Text>
               ) : null}
+              {realRiderPhone ? (
+                <Text style={[{ fontSize: 13, marginTop: 2, color: themeColors.text.muted }]}>📞 {realRiderPhone}</Text>
+              ) : null}
             </View>
-            {realRiderPhone ? (
               <TouchableOpacity style={[styles.callBtn, { backgroundColor: themeColors.status.success }]} onPress={handleCallRider}>
                 <Ionicons name="call" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-            ) : null}
-          </View>
+            </View>
 
           {/* Real OTP PIN Box from Database */}
           {realDeliveryOtp && (

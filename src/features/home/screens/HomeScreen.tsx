@@ -23,8 +23,7 @@ export const HomeScreen = ({ navigation }: Props) => {
   const firstName = authUser?.name ? authUser.name.split(' ')[0] : (authUser?.phone || 'Guest');
   const themeColors = useThemeColors();
 
-  const getDefaultAddress = useAddressStore((state) => state.getDefaultAddress);
-  const defaultAddress = getDefaultAddress();
+  const defaultAddress = useAddressStore((state) => state.addresses.find((a) => a.isDefault) || state.addresses[0]);
 
   const { reminders, toggleReminder } = useReminderStore();
   const nextReminder = reminders.find((r) => !r.taken) || reminders[0];
